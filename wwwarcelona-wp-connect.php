@@ -14,3 +14,10 @@
  */
 
 defined('ABSPATH') || exit;
+
+define('WWWARCELONA_WP_CONNECT_VERSION', '0.1.0');
+define('WWWARCELONA_WP_CONNECT_FILE', __FILE__);
+
+require_once __DIR__ . '/vendor/autoload_packages.php';
+
+add_action('plugins_loaded', [\Wwwarcelona\WpConnect\Plugin::class, 'boot']);

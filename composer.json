@@ -1,6 +1,12 @@
 {
     "require": {
+        "automattic/jetpack-autoloader": "^6.0",
         "wordpress/mcp-adapter": "^0.7.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Wwwarcelona\\WpConnect\\": "includes/"
+        }
     },
     "config": {
         "allow-plugins": {

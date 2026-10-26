@@ -9,6 +9,7 @@ class ComposerStaticInit2c64b06a2a1b18840b9adcc87fb4456f
     public static $prefixLengthsPsr4 = array (
         'W' => 
         array (
+            'Wwwarcelona\\WpConnect\\' => 22,
             'WP\\McpSchema\\' => 13,
             'WP\\MCP\\' => 7,
         ),
@@ -19,6 +20,10 @@ class ComposerStaticInit2c64b06a2a1b18840b9adcc87fb4456f
     );
 
     public static $prefixDirsPsr4 = array (
+        'Wwwarcelona\\WpConnect\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/includes',
+        ),
         'WP\\McpSchema\\' => 
         array (
             0 => __DIR__ . '/..' . '/wordpress/php-mcp-schema/src',
