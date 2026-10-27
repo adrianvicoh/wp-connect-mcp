@@ -264,6 +264,8 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 
 ## Seguridad y limitaciones conocidas
 
+- **La contraseña de la conexión vale para toda la API REST**, no solo para el MCP: con ella se podría publicar o borrar por `wp/v2` según el rol del usuario. Hasta que se limite a la ruta del MCP, no usar el plugin en producción. Análisis y alternativas en [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md).
+
 - **Otras conexiones al mismo sitio:** el límite de «no publicar ni borrar» solo vale para este plugin. Si el mismo Claude Code tiene también otra conexión con más permisos (por ejemplo, Novamira o un conector de claude.ai), podría publicar o borrar por esa vía. Para que el límite sea real, quien use esta conexión no debe tener otras al mismo sitio.
 - **Entradas ya publicadas:** se puede editar su contenido, y el cambio se ve en directo; no se puede cambiar su estado ni su fecha. Pendiente de decidir si se prohíbe (ver [ESTADO.md](ESTADO.md)).
 - **Etiquetas:** `tags` crea las que no existen, si el usuario puede asignar etiquetas.

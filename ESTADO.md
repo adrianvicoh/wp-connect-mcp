@@ -6,11 +6,14 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 - **Versión:** 0.1.0, en `main` (commits `a981dd7`, `587e6f9` y `37ee397`).
 - **Estado:** funcionando en `test.wwwarcelona.net`. Probados conexión, `tools/list`, crear, leer, editar, programar (con publicación automática confirmada), los rechazos principales, el usuario Suscriptor y una tarea real desde Claude Code con la conexión de la página.
-- **Documentación:** README, AGENTS.md y CHANGELOG al día a 27/10/2026.
-- **Siguiente paso:** subir la nueva `ConnectPage.php` a `test.wwwarcelona.net` y revocar la conexión antigua del usuario ID 3. Claude Code ya está conectado con `test-mcp-sub` (ID 6), que ahora es Autor.
+- **Documentación:** README, AGENTS.md y CHANGELOG al día a 27/10/2026. Nuevo [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md): alternativas para usar IA en WordPress, seguridad y control de funciones por paquetes.
+- **Hallazgo de seguridad:** la contraseña de aplicación de la conexión vale para toda la API REST (`wp/v2`), no solo para el MCP; un Autor podría publicar y borrar saltándose el plugin. No usar en producción hasta limitarla a la ruta (ver docs/ALTERNATIVAS.md, alternativa A).
+- **Siguiente paso:** revisar [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) con backend y sistemas, marketing y dirección, y decidir la alternativa antes de seguir con el código (v0.2). Mientras tanto, subir la nueva `ConnectPage.php` a `test.wwwarcelona.net` y revocar la conexión antigua del usuario ID 3. Claude Code ya está conectado con `test-mcp-sub` (ID 6), que ahora es Autor.
 
 ## Pendientes
 
+- [ ] Revisar [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) con backend y sistemas, marketing y dirección, y responder a las preguntas del apartado 8.
+- [ ] Si se aprueba la alternativa A (v0.2): limitar las contraseñas del plugin a `/wwwarcelona/mcp`, paquetes de funciones por usuario, registro de uso y límite de volumen.
 - [ ] Subir `includes/Admin/ConnectPage.php` con el aviso del usuario y comprobar que lo muestra antes y después de crear la conexión.
 - [ ] Revocar la conexión creada con el usuario ID 3 (perfil de ese usuario → *Contraseñas de aplicación*). La nueva ya está en Claude Code, con `test-mcp-sub` (ID 6, Autor).
 - [ ] Decidir si se crea otro usuario Suscriptor de pruebas: `test-mcp-sub` ha pasado a Autor y ya no sirve para repetir las pruebas de Suscriptor.
@@ -42,6 +45,7 @@ Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y pro
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
+| 27/10/2026 | Contraseña de la conexión de Claude Code (`test-mcp-sub`, ID 6, Autor, confirmado con `users/me?context=edit`) contra la API general: `GET wp/v2/users/me` y `GET wp/v2/posts?status=draft`. Solo lectura | ⚠️ Los dos dan `200 OK`; el usuario tiene `publish_posts` y `delete_posts`. La credencial sirve fuera del MCP: podría publicar y borrar por `wp/v2`. Documentado en docs/ALTERNATIVAS.md |
 | 27/10/2026 | `create-post` «Hola» («Qué tal») programada para el 28/10/2026 a las 9:00, con `test-mcp-sub` (Autor) | ✅ Entrada 2470 en `future`, `2026-10-28T09:00:00+01:00`, autor ID 6 |
 | 27/10/2026 | Conexión `wwwarcelona-test-wwwarcelona-net` de Claude Code: usuario y rol con `users/me` | ✅ `test-mcp-sub` (ID 6), rol `author`, con `edit_posts` y `publish_posts`. Con esta conexión la 2467 (del usuario ID 3) da 403: un Autor no puede editar entradas de otros |
 | 27/10/2026 | Tarea real: borrar la 2467. No hay herramienta de borrado; se intenta con `update-post` y `status: trash` | ✅ Rechazado por el esquema: «input[status] no es uno de draft, pending y future» |
@@ -72,6 +76,7 @@ Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y pro
 
 | Fecha | Decisión | Motivo |
 |---|---|---|
+| 27/10/2026 | Antes de seguir con el código, informe de alternativas ([docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md)) para decidir con backend y sistemas, marketing y dirección. Propuesta: MCP reforzado con paquetes de funciones otorgados por usuario en el servidor | Backend y sistemas ven el MCP inseguro en producción, el MCP va a crecer con nuevas funciones y hay que comparar con Chrome, Playwright y n8n. El control no puede vivir solo en las skills: se pueden saltar |
 | 27/10/2026 | La página dice con qué usuario se crea la conexión (nombre y usuario), junto al botón y en el aviso de conexión creada | En la prueba real la conexión salió del usuario ID 3 en lugar de `test-mcp`, porque era la sesión abierta en el escritorio. Claude actúa en nombre de ese usuario, así que tiene que quedar claro antes de pulsar |
 | 27/10/2026 | Forma principal de conexión: página *Herramientas → Conectar con Claude*. Crea la contraseña de aplicación del usuario conectado y muestra un comando de una línea, válido en Mac, Linux y Windows. Los bloques de terminal quedan como alternativa | Simplificar al máximo: entrar en WordPress, pulsar un botón, copiar y pegar. Sin preguntas, sin crear contraseñas a mano y sin un bloque distinto por sistema |
 | 27/10/2026 | Se acepta que la credencial quede en el historial de la terminal y en `~/.claude.json` | Es una contraseña de aplicación revocable, de un solo usuario y sin acceso al escritorio. La página avisa de no compartir el comando y enlaza a revocar |
@@ -92,6 +97,8 @@ Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y pro
 
 ### 27/10/2026
 
+- Nuevo [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md), a partir de `CONTINUACION_20261027.md`. Compara: MCP reforzado, MCP solo en staging, API REST directa, Claude in Chrome, Playwright, n8n (y n8n llamando al MCP), Novamira y generar un fichero para importar. Incluye control por paquetes frente a control en las skills, respuesta a backend y sistemas, recomendación y preguntas para la reunión.
+- Comprobado (solo lectura) que la contraseña de la conexión funciona en `wp/v2`, fuera del MCP.
 - Documentación completada. README: campos de cada herramienta, tabla de permisos por rol, instalación y actualización, «Uso con Claude Code», «Quitar una conexión», «Seguridad y limitaciones conocidas», lista de comprobación y problemas habituales ampliados. AGENTS.md: qué va en cada documento, despliegue, aviso del usuario en la página, cómo comprobar conexiones sin mostrar la contraseña, confirmar usuario y rol antes de anotar pruebas, no saltarse los límites con otras conexiones. CHANGELOG al día.
 - Vuelto a conectar Claude Code desde la página, con `test-mcp-sub` (ID 6, Autor).
 - Programada desde Claude Code la entrada 2470 («Hola») para el 28/10/2026 a las 9:00, con la conexión de `test-mcp-sub` (Autor).

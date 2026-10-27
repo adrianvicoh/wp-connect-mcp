@@ -8,7 +8,7 @@
 
   Lo más reciente va arriba en cada sección.
 
-- Documentación: [README.md](README.md) para quien instala, conecta y usa el plugin; [ESTADO.md](ESTADO.md) para el día a día (pruebas, decisiones, pendientes, historial); [CHANGELOG.md](CHANGELOG.md) solo con cambios por versión. Si cambia una herramienta, un campo, un límite o un rol, actualizar las tablas del README («Qué puede hacer el agente», «Conexión») y «Seguridad y limitaciones conocidas».
+- Documentación: [README.md](README.md) para quien instala, conecta y usa el plugin; [ESTADO.md](ESTADO.md) para el día a día (pruebas, decisiones, pendientes, historial); [CHANGELOG.md](CHANGELOG.md) solo con cambios por versión; [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) para la comparación de alternativas, la seguridad y el control de funciones por paquetes (actualizarlo si cambia la estrategia). Si cambia una herramienta, un campo, un límite o un rol, actualizar las tablas del README («Qué puede hacer el agente», «Conexión») y «Seguridad y limitaciones conocidas».
 - Plugin de WordPress (PHP 7.4+, WP 6.9+). Código propio en `includes/`, PSR-4 `Wwwarcelona\WpConnect\`; estilo PSR-12 con `defined('ABSPATH') || exit;` en cada fichero.
 - `vendor/` se versiona. Tras añadir o mover clases: `composer dump-autoload`. No editar nada dentro de `vendor/`.
 - No usar clases de `vendor/` antes de `plugins_loaded` (autoloader de Jetpack).
