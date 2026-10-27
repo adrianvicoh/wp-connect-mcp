@@ -34,6 +34,11 @@ final class PostAccess
      */
     public static function canEdit($input = null)
     {
+        // Antes de buscar la entrada, para no revelar qué IDs existen a quien no puede editar.
+        if (!current_user_can('edit_posts')) {
+            return false;
+        }
+
         $post = self::find(((array) $input)['id'] ?? 0);
 
         if (is_wp_error($post)) {
