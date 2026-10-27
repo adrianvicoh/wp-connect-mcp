@@ -4,21 +4,31 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Situación actual
 
-- **Versión:** 0.1.0, en `main` (commit `a981dd7`). Sin commit todavía: corrección de `PostAccess.php`, este fichero y los cambios de documentación posteriores.
-- **Estado:** funcionando en `test.wwwarcelona.net`. Probados conexión, `tools/list`, crear, leer, editar, programar (con publicación automática confirmada), los rechazos principales y el usuario Suscriptor.
-- **Siguiente paso:** commit de los cambios pendientes, revisar el log de PHP y probar la conexión desde Claude Code.
+- **Versión:** 0.1.0, en `main` (commits `a981dd7` y `587e6f9`).
+- **Estado:** funcionando en `test.wwwarcelona.net`. Probados conexión, `tools/list`, crear, leer, editar, programar (con publicación automática confirmada), los rechazos principales, el usuario Suscriptor y una tarea real desde Claude Code con la conexión de la página.
+- **Siguiente paso:** subir la nueva `ConnectPage.php` a `test.wwwarcelona.net`, revocar la conexión del usuario ID 3 y crear otra entrando como `test-mcp`.
 
 ## Pendientes
+
+- [ ] Subir `includes/Admin/ConnectPage.php` con el aviso del usuario y comprobar que lo muestra antes y después de crear la conexión.
+- [ ] Revocar la conexión creada con el usuario ID 3 (perfil de ese usuario → *Contraseñas de aplicación*) y crear otra entrando como `test-mcp`; después `claude mcp remove "wwwarcelona-test-wwwarcelona-net"` y pegar el nuevo comando.
+- [ ] Decidir qué hacer con la entrada de prueba 2467 («Prueba desde Claude Code»): está programada y se publicará sola el 28/10/2026 a las 9:00. Para evitarlo, pasarla a borrador o a la papelera desde el escritorio.
 
 - [x] Confirmar que la entrada 2453 pasa de `future` a `publish` sola.
 - [ ] Enviar la entrada de prueba 2453 a la papelera desde el escritorio (el agente no puede borrar).
 - [x] Probar con un usuario Suscriptor: todas las herramientas deben rechazarse.
 - [x] Subir `includes/Support/PostAccess.php` corregido a `test.wwwarcelona.net` y repetir `get-post` como Suscriptor: debe dar `Permission denied`.
-- [ ] Revisar el log de PHP en `test.wwwarcelona.net`: solo debería aparecer el aviso de "deprecated" del adapter.
+- [x] Revisar el log de PHP en `test.wwwarcelona.net`: solo debería aparecer el aviso de "deprecated" del adapter.
+- [ ] **Fuera del plugin, seguridad del sitio:** `https://test.wwwarcelona.net/wp-content/debug.log` se puede descargar desde internet (HTTP 206, 27/10/2026). Mover el log fuera de la carpeta pública (`define('WP_DEBUG_LOG', '/ruta/fuera/de/htdocs/debug.log');`) o bloquearlo en la configuración del servidor. Revisar lo mismo en otros sitios. El log pesa 152 MB y está lleno de avisos de otros plugins.
+- [ ] Valorar instalar el plugin oficial MCP Adapter en lugar de llevarlo dentro de `vendor/`, para quitar el aviso de "deprecated" (v0.2).
 - [x] `wp-json.json`: borrado confirmado en el commit `a981dd7`.
 - [x] Primer commit (`a981dd7`, en `main`).
-- [ ] Commit de la corrección de `PostAccess.php`, `ESTADO.md` y la documentación.
-- [ ] Probar la conexión desde Claude Code (`claude mcp add`, en el README) con una tarea real. Hasta ahora solo se ha probado con `curl`.
+- [x] Commit de la corrección de `PostAccess.php`, `ESTADO.md` y la documentación (`587e6f9`).
+- [x] Subir `includes/Admin/ConnectPage.php` e `includes/Plugin.php` a `test.wwwarcelona.net`, crear la conexión desde *Herramientas → Conectar con Claude*, pegar el comando y comprobar que Claude Code conecta.
+- [x] Pedir a Claude, en una sesión nueva, una tarea real con el sitio conectado.
+- [ ] Revisar la página con un usuario administrador (debe recomendar un usuario propio para Claude) y comprobar que la conexión aparece en la lista y se puede revocar desde el perfil.
+- [ ] Probar el comando de la página en Windows (PowerShell) y en un Mac.
+- [ ] Probar los bloques de la alternativa por terminal en Windows (PowerShell) y en un Mac (zsh). En Linux funciona el de Linux y macOS.
 - [ ] Decidir si el agente puede editar entradas ya publicadas. Ahora puede, y el cambio se ve en directo. Recomendación: prohibirlo.
 - [ ] Decidir si el agente puede crear etiquetas nuevas o solo usar las existentes.
 - [ ] Acordar el rol estándar del usuario del agente: Autor, que puede programar, o Colaborador, que solo deja entradas pendientes.
@@ -29,6 +39,12 @@ Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y pro
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
+| 27/10/2026 | Tarea real: borrar la 2467. No hay herramienta de borrado; se intenta con `update-post` y `status: trash` | ✅ Rechazado por el esquema: «input[status] no es uno de draft, pending y future» |
+| 27/10/2026 | Tarea real desde Claude Code (conexión creada en la página, usuario ID 3): intentar publicar la 2467 con `update-post` y `status: publish` | ✅ Rechazado por el esquema: «input[status] no es uno de draft, pending y future» |
+| 27/10/2026 | Tarea real: `create-post` «Prueba desde Claude Code» programada para el 28/10/2026 a las 9:00 sin zona horaria | ✅ Entrada 2467 en `future`, `2026-10-28T09:00:00+01:00` (zona del sitio). `modified` sale igual a la fecha programada: es lo que hace WordPress al crear una entrada con fecha |
+| 27/10/2026 | Tarea real: `list-posts` con `per_page: 5` | ✅ 3 entradas (las que el usuario puede editar: 1439, 1437, 1238). La 2453, en la papelera, no aparece |
+| 27/10/2026 | Página *Herramientas → Conectar con Claude* en Linux: crear conexión, copiar y pegar el comando | ✅ Claude Code guarda `wwwarcelona-test-wwwarcelona-net` en la configuración de usuario. `claude mcp get` da «✔ Connected» |
+| 27/10/2026 | Log de PHP desde la activación (26/10, 12:58 UTC) | ✅ Sin errores fatales, sin warnings y sin errores `[wwwarcelona-wp-connect]`. Solo el aviso esperado del adapter (28 veces, una por petición que lo inicializa). El resto de avisos son de otros plugins (Enlazatom, traducciones del tema y ACF) |
 | 27/10/2026 | Suscriptor con la corrección subida: `get-post` con 2453 (existe, en papelera) y 99999 (no existe) | ✅ Los dos dan `Permission denied`: ya no se revela qué IDs existen |
 | 26/10/2026 | Suscriptor `test-mcp-sub` (ID 6): `list-posts`, `create-post` | ✅ `Permission denied` |
 | 26/10/2026 | Suscriptor: `get-post` con ID 2453 | ⚠️ Respondió «No existe ninguna entrada» en lugar de `Permission denied`: buscaba la entrada antes de comprobar permisos y dejaba averiguar qué IDs existen. Corregido en `PostAccess::canEdit()` y comprobado el 27/10/2026 |
@@ -51,6 +67,13 @@ Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y pro
 
 | Fecha | Decisión | Motivo |
 |---|---|---|
+| 27/10/2026 | La página dice con qué usuario se crea la conexión (nombre y usuario), junto al botón y en el aviso de conexión creada | En la prueba real la conexión salió del usuario ID 3 en lugar de `test-mcp`, porque era la sesión abierta en el escritorio. Claude actúa en nombre de ese usuario, así que tiene que quedar claro antes de pulsar |
+| 27/10/2026 | Forma principal de conexión: página *Herramientas → Conectar con Claude*. Crea la contraseña de aplicación del usuario conectado y muestra un comando de una línea, válido en Mac, Linux y Windows. Los bloques de terminal quedan como alternativa | Simplificar al máximo: entrar en WordPress, pulsar un botón, copiar y pegar. Sin preguntas, sin crear contraseñas a mano y sin un bloque distinto por sistema |
+| 27/10/2026 | Se acepta que la credencial quede en el historial de la terminal y en `~/.claude.json` | Es una contraseña de aplicación revocable, de un solo usuario y sin acceso al escritorio. La página avisa de no compartir el comando y enlaza a revocar |
+| 27/10/2026 | Descartado por ahora OAuth (entrar con el usuario en el navegador, como Novamira) | Es lo más sencillo para el usuario, pero exige construir un servidor OAuth. Se valorará en una versión posterior |
+| 27/10/2026 | Conectar Claude Code con bloques de comandos para copiar y pegar (Linux/macOS y Windows), sin ficheros ejecutables. Sustituye al script `bin/conectar-claude.sh`, que se ha retirado | Los usuarios no técnicos no tienen el repositorio: con un fichero habría que repartirlo y actualizarlo, no funcionaría en Windows y obligaría a ejecutar ficheros recibidos. Los bloques piden y confirman el sitio, validan antes de guardar y explican los errores |
+| 27/10/2026 | Los bloques confirman el sitio (nombre y dirección) antes de pedir credenciales | Que la persona sepa con qué sitio se está conectando antes de escribir su contraseña |
+| 27/10/2026 | Conexión en Claude Code con `--scope user` | `local` solo funciona en la carpeta donde se ejecuta; `project` dejaría la credencial en el repositorio |
 | 26/10/2026 | Comprobar `edit_posts` antes de buscar la entrada en `get-post` y `update-post` | Quien no puede editar recibe siempre `Permission denied` y no averigua qué IDs existen |
 | 26/10/2026 | Pruebas solo con `curl` y `php -r`, sin `jq` | No instalar nada en los equipos |
 | 26/10/2026 | Arranque en `plugins_loaded` | El autoloader de Jetpack elige la versión más nueva del adapter cuando ya conoce todos los plugins |
@@ -64,6 +87,21 @@ Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y pro
 
 ### 27/10/2026
 
+- Revisada la sesión de la tarea real: el autor de la 2467 es el usuario ID 3, no `test-mcp` (ID 5); la conexión se creó con la sesión abierta en el escritorio. La página ahora muestra con qué usuario se crea la conexión.
+- Eliminada de Claude Code la conexión `novamira-test-wwwarcelona` (Novamira en `test.wwwarcelona.net`, usuario `adrian`), para que el agente solo tenga acceso al sitio a través de este plugin. Queda el conector de claude.ai «WP NovaMira wwwarcelona test site», que se quita desde los ajustes de claude.ai.
+- Tarea real desde Claude Code con la conexión creada en la página: listar entradas, crear y programar la 2467 e intentar publicarla y borrarla. Todo como se esperaba: la publicación y el borrado se rechazan.
+- Página *Herramientas → Conectar con Claude* (`includes/Admin/ConnectPage.php`):
+  - instrucciones paso a paso en pantalla;
+  - botón «Crear conexión», que crea la contraseña de aplicación con el identificador del plugin;
+  - comando de una línea con botón «Copiar», que se muestra una sola vez;
+  - lista de conexiones del usuario, con su último uso y enlace para revocarlas;
+  - avisos si las contraseñas de aplicación no están disponibles y si el usuario es administrador.
+
+  Probada fuera de WordPress, simulando sus funciones, y después en `test.wwwarcelona.net`: la conexión creada desde la página funciona en Claude Code («✔ Connected»).
+- README reorganizado: la conexión desde el escritorio pasa a ser la recomendada y los bloques de terminal, la alternativa.
+- Conexión con Claude Code: primero un script (`bin/conectar-claude.sh`), sustituido el mismo día por bloques para copiar y pegar en el README (Linux/macOS y Windows). Los bloques confirman el sitio antes de pedir credenciales. Probados en Linux los casos de contraseña incorrecta, rechazo de la confirmación y dirección inexistente; no se guarda nada en ninguno. El bloque de Windows está sin probar.
+- Corregido el comando de técnicos: `<sitio>` como hueco rompía el comando en bash; además `--scope local` pasa a `--scope user`.
+- Revisado el log de PHP del sitio de pruebas: el plugin no genera errores. Detectado que `debug.log` es accesible públicamente (problema del sitio, no del plugin).
 - Subida a `test.wwwarcelona.net` la corrección de `PostAccess.php` y comprobada con el Suscriptor: `Permission denied` exista o no el ID.
 - Documentación revisada y al día: sección Instalación en el README, límites de permisos y sesiones, regla nueva en AGENTS.md, CHANGELOG.
 

@@ -7,6 +7,7 @@ use WP\MCP\Infrastructure\ErrorHandling\ErrorLogMcpErrorHandler;
 use WP\MCP\Infrastructure\Observability\NullMcpObservabilityHandler;
 use WP\MCP\Transport\HttpTransport;
 use Wwwarcelona\WpConnect\Abilities\CreatePost;
+use Wwwarcelona\WpConnect\Admin\ConnectPage;
 use Wwwarcelona\WpConnect\Abilities\GetPost;
 use Wwwarcelona\WpConnect\Abilities\ListPosts;
 use Wwwarcelona\WpConnect\Abilities\UpdatePost;
@@ -40,6 +41,10 @@ final class Plugin
         add_action('wp_abilities_api_categories_init', [self::class, 'registerCategory']);
         add_action('wp_abilities_api_init', [self::class, 'registerAbilities']);
         add_action('mcp_adapter_init', [self::class, 'registerServer']);
+
+        if (is_admin()) {
+            ConnectPage::register();
+        }
 
         McpAdapter::instance();
     }
