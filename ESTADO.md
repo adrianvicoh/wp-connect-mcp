@@ -4,14 +4,17 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Situación actual
 
-- **Versión:** 0.1.0, en `main` (commits `a981dd7` y `587e6f9`).
+- **Versión:** 0.1.0, en `main` (commits `a981dd7`, `587e6f9` y `37ee397`).
 - **Estado:** funcionando en `test.wwwarcelona.net`. Probados conexión, `tools/list`, crear, leer, editar, programar (con publicación automática confirmada), los rechazos principales, el usuario Suscriptor y una tarea real desde Claude Code con la conexión de la página.
-- **Siguiente paso:** subir la nueva `ConnectPage.php` a `test.wwwarcelona.net`, revocar la conexión del usuario ID 3 y crear otra entrando como `test-mcp`.
+- **Documentación:** README, AGENTS.md y CHANGELOG al día a 27/10/2026.
+- **Siguiente paso:** subir la nueva `ConnectPage.php` a `test.wwwarcelona.net` y revocar la conexión antigua del usuario ID 3. Claude Code ya está conectado con `test-mcp-sub` (ID 6), que ahora es Autor.
 
 ## Pendientes
 
 - [ ] Subir `includes/Admin/ConnectPage.php` con el aviso del usuario y comprobar que lo muestra antes y después de crear la conexión.
-- [ ] Revocar la conexión creada con el usuario ID 3 (perfil de ese usuario → *Contraseñas de aplicación*) y crear otra entrando como `test-mcp`; después `claude mcp remove "wwwarcelona-test-wwwarcelona-net"` y pegar el nuevo comando.
+- [ ] Revocar la conexión creada con el usuario ID 3 (perfil de ese usuario → *Contraseñas de aplicación*). La nueva ya está en Claude Code, con `test-mcp-sub` (ID 6, Autor).
+- [ ] Decidir si se crea otro usuario Suscriptor de pruebas: `test-mcp-sub` ha pasado a Autor y ya no sirve para repetir las pruebas de Suscriptor.
+- [ ] Entrada de prueba 2470 («Hola»): programada, se publicará sola el 28/10/2026 a las 9:00. Si no debe salir, pasarla a borrador (lo puede hacer el agente con la conexión actual).
 - [ ] Decidir qué hacer con la entrada de prueba 2467 («Prueba desde Claude Code»): está programada y se publicará sola el 28/10/2026 a las 9:00. Para evitarlo, pasarla a borrador o a la papelera desde el escritorio.
 
 - [x] Confirmar que la entrada 2453 pasa de `future` a `publish` sola.
@@ -35,10 +38,12 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Pruebas en test.wwwarcelona.net
 
-Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y programar) y `test-mcp-sub` (ID 6, Suscriptor). Comandos en la sección «Probar con curl» del README.
+Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y programar) y `test-mcp-sub` (ID 6; era Suscriptor en las pruebas del 26 y 27/10, ahora es Autor y su nombre visible es «test-mcp»). Comandos en la sección «Probar con curl» del README.
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
+| 27/10/2026 | `create-post` «Hola» («Qué tal») programada para el 28/10/2026 a las 9:00, con `test-mcp-sub` (Autor) | ✅ Entrada 2470 en `future`, `2026-10-28T09:00:00+01:00`, autor ID 6 |
+| 27/10/2026 | Conexión `wwwarcelona-test-wwwarcelona-net` de Claude Code: usuario y rol con `users/me` | ✅ `test-mcp-sub` (ID 6), rol `author`, con `edit_posts` y `publish_posts`. Con esta conexión la 2467 (del usuario ID 3) da 403: un Autor no puede editar entradas de otros |
 | 27/10/2026 | Tarea real: borrar la 2467. No hay herramienta de borrado; se intenta con `update-post` y `status: trash` | ✅ Rechazado por el esquema: «input[status] no es uno de draft, pending y future» |
 | 27/10/2026 | Tarea real desde Claude Code (conexión creada en la página, usuario ID 3): intentar publicar la 2467 con `update-post` y `status: publish` | ✅ Rechazado por el esquema: «input[status] no es uno de draft, pending y future» |
 | 27/10/2026 | Tarea real: `create-post` «Prueba desde Claude Code» programada para el 28/10/2026 a las 9:00 sin zona horaria | ✅ Entrada 2467 en `future`, `2026-10-28T09:00:00+01:00` (zona del sitio). `modified` sale igual a la fecha programada: es lo que hace WordPress al crear una entrada con fecha |
@@ -87,6 +92,11 @@ Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y pro
 
 ### 27/10/2026
 
+- Documentación completada. README: campos de cada herramienta, tabla de permisos por rol, instalación y actualización, «Uso con Claude Code», «Quitar una conexión», «Seguridad y limitaciones conocidas», lista de comprobación y problemas habituales ampliados. AGENTS.md: qué va en cada documento, despliegue, aviso del usuario en la página, cómo comprobar conexiones sin mostrar la contraseña, confirmar usuario y rol antes de anotar pruebas, no saltarse los límites con otras conexiones. CHANGELOG al día.
+- Vuelto a conectar Claude Code desde la página, con `test-mcp-sub` (ID 6, Autor).
+- Programada desde Claude Code la entrada 2470 («Hola») para el 28/10/2026 a las 9:00, con la conexión de `test-mcp-sub` (Autor).
+- Revisada la conexión de Claude Code: usa `test-mcp-sub` (ID 6), que ahora es Autor. ESTADO.md lo seguía dando como Suscriptor; corregido.
+- Eliminada también de Claude Code la conexión `wwwarcelona-test-wwwarcelona-net` (ya fallaba al conectar). Claude Code no tiene ninguna conexión a `test.wwwarcelona.net`; solo queda el conector de claude.ai de Novamira.
 - Revisada la sesión de la tarea real: el autor de la 2467 es el usuario ID 3, no `test-mcp` (ID 5); la conexión se creó con la sesión abierta en el escritorio. La página ahora muestra con qué usuario se crea la conexión.
 - Eliminada de Claude Code la conexión `novamira-test-wwwarcelona` (Novamira en `test.wwwarcelona.net`, usuario `adrian`), para que el agente solo tenga acceso al sitio a través de este plugin. Queda el conector de claude.ai «WP NovaMira wwwarcelona test site», que se quita desde los ajustes de claude.ai.
 - Tarea real desde Claude Code con la conexión creada en la página: listar entradas, crear y programar la 2467 e intentar publicarla y borrarla. Todo como se esperaba: la publicación y el borrado se rechazan.

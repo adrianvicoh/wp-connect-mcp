@@ -11,6 +11,21 @@ Plugin de WordPress que expone un servidor MCP propio para que Claude u otros ag
 | `wwwarcelona-create-post` | Crea una entrada como borrador, pendiente o programada. |
 | `wwwarcelona-update-post` | Modifica solo los campos indicados de una entrada. |
 
+Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
+
+| Tool | Campos |
+|---|---|
+| `list-posts` | `search` (texto en título y contenido), `status` (lista de `draft`, `pending`, `future`, `publish`; por defecto todos), `per_page` (1–50, por defecto 20), `page`. Ordena por última modificación. |
+| `get-post` | `id` (obligatorio). |
+| `create-post` | `title` (obligatorio), `content`, `excerpt`, `status`, `scheduled_date`, `categories`, `tags`. |
+| `update-post` | `id` (obligatorio) y cualquiera de los campos de `create-post`. Solo cambia los que se envían. |
+
+- `content`: HTML o marcado de bloques; se filtra con las etiquetas permitidas en entradas.
+- `status`: `draft` (por defecto), `pending` o `future`.
+- `scheduled_date`: ISO 8601, en el futuro (por ejemplo, `2026-10-28T09:00:00+01:00`). Sin zona horaria se usa la del sitio. Implica `future`.
+- `categories`: IDs de categorías existentes. `tags`: nombres; las que no existen se crean. Las dos listas sustituyen a las actuales.
+- Cualquier otro campo (por ejemplo, `post_type` o `author`) se rechaza.
+
 Límites:
 
 - Solo el tipo `post`; páginas y tipos personalizados se rechazan.
@@ -31,22 +46,29 @@ El paquete `wordpress/mcp-adapter` va incluido en `vendor/` y se carga con el au
 
 ## Instalación
 
-1. Copiar la carpeta del plugin a `wp-content/plugins/wwwarcelona-wp-connect/`, **con `vendor/` incluido** (no hace falta Composer en el servidor). Para actualizar basta con subir los ficheros cambiados.
+1. Copiar la carpeta del plugin a `wp-content/plugins/wwwarcelona-wp-connect/`, **con `vendor/` incluido** (no hace falta Composer en el servidor).
 2. Activarlo en *Plugins*. Si WordPress es anterior a 6.9, aparece un aviso y el plugin no hace nada.
+3. Crear el usuario que va a usar Claude (ver «Conexión») y conectarlo desde *Herramientas → Conectar con Claude*.
+
+Para actualizar, basta con subir los ficheros cambiados; no hay que reactivar el plugin. Las conexiones ya creadas siguen funcionando.
 
 ## Conexión
 
 El usuario con el que se conecta Claude determina lo que puede hacer:
 
-- **Autor:** puede crear y programar entradas.
-- **Colaborador:** solo deja entradas pendientes.
-- **Suscriptor:** no puede usar nada.
+| Rol | Qué puede hacer Claude |
+|---|---|
+| **Colaborador** | Crear y editar sus propias entradas como borrador o pendientes. No puede programar. |
+| **Autor** | Lo mismo, y además programar. Solo ve y edita sus propias entradas: las de otros usuarios dan `Permission denied`. |
+| **Editor** | Ver, editar y programar las entradas de cualquier usuario. |
+| **Administrador** | Lo mismo que el Editor. No recomendado: si la credencial se filtra, es la de un administrador. |
+| **Suscriptor** | Nada: todas las herramientas dan `Permission denied`. |
 
-Lo recomendable es un usuario propio para Claude, no el de un administrador.
+Ningún rol permite a Claude publicar ni borrar a través de este plugin. Lo recomendable es un usuario propio para Claude, con rol Autor (o Colaborador si una persona debe revisarlo todo), no el de una persona ni el de un administrador.
 
 Endpoint: `https://<sitio>/wp-json/wwwarcelona/mcp` (es el dato que se usa en los comandos de abajo, no un comando).
 
-La forma recomendada es desde el escritorio de WordPress. Pendiente de probar con una tarea real; ver [ESTADO.md](ESTADO.md).
+La forma recomendada es desde el escritorio de WordPress (probada en Linux; falta probarla en Windows y Mac, ver [ESTADO.md](ESTADO.md)).
 
 ### Conectar Claude Code desde el escritorio (recomendado)
 
@@ -222,6 +244,33 @@ Abrir **PowerShell** (no «Símbolo del sistema»), pegar el bloque entero y pul
 - **Sesión MCP:** Claude Code la gestiona solo.
 - **Para quitar una conexión:** `claude mcp list` muestra el nombre y `claude mcp remove` seguido del nombre la borra.
 
+## Uso con Claude Code
+
+Con el sitio conectado, se le pide a Claude en lenguaje normal. Por ejemplo:
+
+- «Lista mis últimas 5 entradas en test.wwwarcelona.net.»
+- «Crea un borrador titulado "Novedades de octubre" con este texto: …»
+- «Programa la entrada 2470 para el lunes a las 9:00.»
+- «Cambia el extracto de la entrada 1439.»
+
+Claude pide permiso antes de usar cada herramienta (salvo que se haya autorizado de forma permanente). Si se le pide publicar o borrar, responde que no puede: el plugin lo rechaza. Para publicar, una persona entra en el escritorio, revisa la entrada y la publica.
+
+Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Generales*). Las entradas programadas se publican solas a su hora con el cron de WordPress, que se ejecuta cuando alguien visita el sitio.
+
+### Quitar una conexión
+
+1. En la terminal: `claude mcp list` muestra el nombre (por ejemplo, `wwwarcelona-test-wwwarcelona-net`) y `claude mcp remove "wwwarcelona-test-wwwarcelona-net"` la borra del equipo.
+2. En WordPress: *Herramientas → Conectar con Claude → Revocar conexiones en tu perfil*, y revocar la contraseña «Claude Code · fecha». Sin este paso, la credencial sigue siendo válida aunque se haya quitado del equipo.
+
+## Seguridad y limitaciones conocidas
+
+- **Otras conexiones al mismo sitio:** el límite de «no publicar ni borrar» solo vale para este plugin. Si el mismo Claude Code tiene también otra conexión con más permisos (por ejemplo, Novamira o un conector de claude.ai), podría publicar o borrar por esa vía. Para que el límite sea real, quien use esta conexión no debe tener otras al mismo sitio.
+- **Entradas ya publicadas:** se puede editar su contenido, y el cambio se ve en directo; no se puede cambiar su estado ni su fecha. Pendiente de decidir si se prohíbe (ver [ESTADO.md](ESTADO.md)).
+- **Etiquetas:** `tags` crea las que no existen, si el usuario puede asignar etiquetas.
+- **Credencial en el equipo:** queda en `~/.claude.json` y en el historial de la terminal. Es revocable y solo vale para la API de ese usuario.
+- **Log de WordPress:** si el sitio tiene `WP_DEBUG_LOG` activo, comprobar que `wp-content/debug.log` no se puede descargar desde internet. En `test.wwwarcelona.net` sí se podía; es un problema del sitio, no del plugin.
+- **Aviso de deprecación:** el adapter MCP incluido deja un aviso en el log en cada petición. No afecta al funcionamiento.
+
 ## Probar con curl
 
 El transporte HTTP del adapter funciona con sesión, en tres pasos: abrir sesión (`initialize`), confirmarla (`notifications/initialized`) y hacer las peticiones. Todas van por POST al mismo endpoint, con Basic Auth y Application Password. A partir del segundo paso se envían las cabeceras `Mcp-Session-Id` y `MCP-Protocol-Version`.
@@ -299,7 +348,7 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 - `tools/list` devuelve exactamente `wwwarcelona-list-posts`, `wwwarcelona-get-post`, `wwwarcelona-create-post` y `wwwarcelona-update-post`.
 - Crear un borrador, leerlo y editar su título funciona.
 - Programar con `scheduled_date` a 10 minutos deja la entrada en `future`, y se publica sola a esa hora. El cron de WordPress solo se ejecuta cuando alguien visita el sitio, así que puede tardar algo más.
-- Fallan como deben: `status: publish`, el ID de una página, una fecha pasada y un usuario Suscriptor.
+- Fallan como deben: `status: publish`, `status: trash`, el ID de una página, una fecha pasada, un campo desconocido (`post_type`), un usuario Suscriptor y, con un Autor, una entrada de otro usuario.
 - Funciona junto a otros plugins que usan el adapter MCP (Novamira).
 
 ### Problemas habituales
@@ -314,6 +363,7 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 | `Missing Mcp-Session-Id header` | `$SID` vacío: revisar `headers.txt`. |
 | `-32005 Session not found` | La sesión no es de ese usuario o ha caducado. Al cambiar `WP_USER` hay que repetir los pasos 1 y 2: cada sesión va ligada al usuario que la abrió. |
 | Error de `MCP-Protocol-Version` | Falta esa cabecera en los pasos 2 y siguientes. |
+| `Permission denied` con un Autor o Colaborador | La entrada es de otro usuario: estos roles solo editan las suyas. |
 | Menos de cuatro herramientas | Revisar el log de PHP; los errores del plugin llevan el prefijo `[wwwarcelona-wp-connect]`. |
 
 ## Desarrollo

@@ -8,17 +8,20 @@
 
   Lo más reciente va arriba en cada sección.
 
+- Documentación: [README.md](README.md) para quien instala, conecta y usa el plugin; [ESTADO.md](ESTADO.md) para el día a día (pruebas, decisiones, pendientes, historial); [CHANGELOG.md](CHANGELOG.md) solo con cambios por versión. Si cambia una herramienta, un campo, un límite o un rol, actualizar las tablas del README («Qué puede hacer el agente», «Conexión») y «Seguridad y limitaciones conocidas».
 - Plugin de WordPress (PHP 7.4+, WP 6.9+). Código propio en `includes/`, PSR-4 `Wwwarcelona\WpConnect\`; estilo PSR-12 con `defined('ABSPATH') || exit;` en cada fichero.
 - `vendor/` se versiona. Tras añadir o mover clases: `composer dump-autoload`. No editar nada dentro de `vendor/`.
 - No usar clases de `vendor/` antes de `plugins_loaded` (autoloader de Jetpack).
 - Alcance deliberadamente limitado: solo entradas (`post`), sin publicar ni borrar. Cualquier ability nueva debe añadirse a `Plugin::ABILITIES`, comprobar capacidades en `permission_callback` (las generales, como `edit_posts`, antes de cargar nada, para no revelar qué existe) y declarar `input_schema` con `additionalProperties: false` y `output_schema`.
 - Las reglas de estado y programación viven en `Support/PostInput.php`; no duplicarlas en las abilities.
+- Despliegue en el sitio de pruebas: subir solo los ficheros cambiados a `wp-content/plugins/wwwarcelona-wp-connect/` (con `vendor/` si cambia). No hay paso de compilación.
 - Verificación: `php -l` de los ficheros tocados y, en un WordPress de pruebas, `tools/list` y `tools/call` contra `/wp-json/wwwarcelona/mcp`. Los pasos con `curl` (sesión, cabeceras) y la lista de comprobación están en la sección «Probar con curl» del README.
 - En comandos de prueba y documentación no depender de herramientas que haya que instalar (`jq` y similares): usar solo `curl` y `php -r` para leer el JSON.
 - La forma principal de conectar Claude Code es la página **Herramientas → Conectar con Claude** (`includes/Admin/ConnectPage.php`). Al tocarla:
   - las instrucciones de la página y las del README («Conectar Claude Code desde el escritorio») deben decir lo mismo;
   - el comando generado debe seguir siendo **una sola línea** válida en bash, zsh, PowerShell y cmd: solo comillas dobles, sin `$`, comillas simples, acentos graves ni `&`;
   - la contraseña se muestra una sola vez y no se guarda;
+  - la página muestra siempre con qué usuario se crea la conexión (antes de pulsar y al crearla): Claude actúa en su nombre;
   - todo texto que se imprima se escapa (`esc_html`, `esc_textarea`, `esc_url`);
   - el formulario lleva nonce;
   - si se cambia el formato del nombre de la conexión (`wwwarcelona-<dominio>`), cambiarlo también en los bloques de terminal.
@@ -32,4 +35,6 @@
 
   Los dos bloques hacen lo mismo: si se cambia uno, cambiar el otro. Tras tocarlos, probar los caminos de error con datos falsos (en Unix, quitando `</dev/tty` y pasando las respuestas por tubería).
 - Los comandos de la documentación deben poder pegarse tal cual. Nada de huecos tipo `<sitio>`: en bash, `<` es una redirección y el comando falla. Los datos variables se piden con `read`.
-- Nunca escribir Application Passwords en ficheros del repositorio ni en comandos que queden en el historial.
+- Nunca escribir Application Passwords en ficheros del repositorio ni en comandos que queden en el historial. Para comprobar una conexión de Claude Code, leer la cabecera de `~/.claude.json` dentro de `php -r` y mostrar solo el usuario, nunca la contraseña.
+- Antes de anotar una prueba en ESTADO.md, confirmar con qué usuario y rol se hizo (`wp/v2/users/me?context=edit`, o el autor de la entrada creada). El nombre visible puede no coincidir con el usuario, y los roles de los usuarios de prueba cambian.
+- Al trabajar con un sitio conectado, no usar otras conexiones al mismo sitio (Novamira, conectores de claude.ai) para hacer lo que este plugin no permite (publicar, borrar). Si el usuario lo pide, explicar el límite.
