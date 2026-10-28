@@ -20,12 +20,27 @@ Documento para decidir, con backend y sistemas, marketing y dirección, cómo se
 
 ## 2. Punto de partida y hallazgo
 
-**Hoy.** Este plugin crea un servidor MCP propio en `/wp-json/wwwarcelona/mcp` con cuatro herramientas: listar, leer, crear y editar entradas. El agente no puede publicar ni borrar: solo deja borradores, entradas pendientes o programadas. Cada persona se conecta con una contraseña de aplicación de su usuario de WordPress, creada desde *Herramientas → Conectar con Claude*.
+**Hoy.** Este plugin crea un servidor MCP propio en `/wp-json/wwwarcelona/mcp` con cinco herramientas: listar, leer, crear, editar y enviar a la papelera entradas. Desde el 28/10/2026, como medida provisional hasta decidir la alternativa, el agente puede modificar, publicar y enviar a la papelera (recuperable) las entradas creadas por su usuario, también las publicadas; publicar, solo si el rol lo permite (Autor o superior). Hasta ese día no publicaba: solo dejaba borradores, entradas pendientes o programadas. Cada persona se conecta con una contraseña de aplicación de su usuario de WordPress, creada desde *Herramientas → Conectar con Claude*.
 
 **Hallazgo (comprobado el 27/10/2026 en `test.wwwarcelona.net`).** La contraseña de aplicación no vale solo para el MCP: vale para **toda la API REST de WordPress**. Con la credencial que Claude Code tiene guardada (usuario `test-mcp-sub`, rol Autor), `wp/v2/users/me` y `wp/v2/posts?status=draft` responden `200 OK`, y el usuario tiene `publish_posts` y `delete_posts`. Por tanto:
 
-- quien tenga esa credencial (o el propio agente, que en Claude Code puede ejecutar `curl`) puede **publicar y borrar** por `wp/v2`, saltándose los límites del MCP;
-- el límite de «no publica» es hoy una norma del MCP, no una barrera de seguridad.
+- quien tenga esa credencial (o el propio agente, que en Claude Code puede ejecutar `curl`) puede hacer por `wp/v2` todo lo que permita el rol del usuario, saltándose los límites del MCP;
+- los límites del MCP (solo entradas propias, sin borrar definitivamente, sin páginas) son hoy una norma del MCP, no una barrera de seguridad.
+
+**Qué permite cada vía con la misma credencial.** La API general no añade límites propios: manda el rol.
+
+| Acción | Plugin (MCP) | API de WordPress (`wp/v2`) |
+|---|---|---|
+| Crear, editar y programar entradas | Solo propias | Autor: solo las suyas. Editor y Administrador: las de cualquiera |
+| Publicar | Solo propias, con Autor o superior | Con Autor o superior; Editor y Administrador, también las de otros |
+| Enviar a la papelera | Solo propias | Según el rol, también las de otros (Editor y Administrador) |
+| Borrar definitivamente | No | Sí (`force=true`), según el rol |
+| Entradas de otros usuarios | No, con ningún rol | Sí, con Editor o Administrador |
+| Páginas | No | Sí (`wp/v2/pages`), con Editor o Administrador |
+| Elementor | No | Muy limitado: el diseño se guarda en el metadato `_elementor_data`, que Elementor no expone en la API. Se puede cambiar el HTML de la página, no el diseño de Elementor; para eso hace falta su editor, un plugin propio o Novamira |
+| Medios, comentarios, usuarios, ajustes | No | Según el rol; un Administrador, casi todo |
+
+Con un Autor el riesgo extra es sobre todo borrar para siempre sus entradas; con un Editor o un Administrador, casi todo el contenido del sitio.
 
 Esto afecta a cualquier alternativa que use contraseñas de aplicación (A, C y F) y es lo primero que hay que corregir si se sigue con ellas. La corrección es sencilla: que las contraseñas creadas por el plugin solo se acepten en la ruta del MCP (ver alternativa A).
 
@@ -81,6 +96,8 @@ Esto afecta a cualquier alternativa que use contraseñas de aplicación (A, C y 
 | Fiabilidad | Alta |
 | Facilidad | Media: la conexión se configura a mano |
 | Escalado | Medio: cada función nueva depende de lo que ofrezca la API de WordPress |
+
+Tampoco sirve para Elementor: su diseño no está en la API (ver la tabla del apartado 2), así que las páginas maquetadas con Elementor no se pueden editar por esta vía.
 
 **Veredicto:** no recomendada. Para limitarla bien habría que construir lo mismo que A.
 
@@ -211,7 +228,7 @@ La opción c) recoge lo que se busca con la pregunta: la definición vive junto 
 
 ## 6. Respuesta a backend y sistemas
 
-**Lo que es cierto.** Con el plugin tal como está (v0.1.0), una credencial filtrada permite publicar y borrar por la API general de WordPress (apartado 2). En ese estado no debe ir a producción.
+**Lo que es cierto.** Con el plugin tal como está (v0.1.0 y v0.2.0), una credencial filtrada permite hacer por la API general de WordPress todo lo que permita el rol del usuario (apartado 2). En ese estado no debe ir a producción.
 
 **Lo que se corrige con A.** La credencial queda limitada a la ruta del MCP y a los paquetes del usuario. Se revoca sin tocar su contraseña de acceso, deja registro de uso y tiene un límite de volumen.
 

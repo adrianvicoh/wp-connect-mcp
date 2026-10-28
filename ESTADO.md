@@ -4,29 +4,42 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Situación actual
 
-- **Versión:** 0.1.0, en `main` (commits `a981dd7`, `587e6f9` y `37ee397`).
+- **Versión:** 0.2.0 en `main`, sin tag hasta probar publicar en el sitio. La 0.1.0 tiene el tag `v0.1.0` (commit `169509e`).
 - **Estado:** funcionando en `test.wwwarcelona.net`. Probados conexión, `tools/list`, crear, leer, editar, programar (con publicación automática confirmada), los rechazos principales, el usuario Suscriptor y una tarea real desde Claude Code con la conexión de la página.
 - **Documentación:** README, AGENTS.md y CHANGELOG al día a 27/10/2026. Nuevo [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md): alternativas para usar IA en WordPress, seguridad y control de funciones por paquetes.
+- **Publicar entradas propias (28/10/2026, sin subir):** `create-post` y `update-post` admiten `status: publish`, solo para entradas propias y si el usuario puede publicar (Autor o superior). Publicar una programada la publica ahora. Las propias publicadas se pueden despublicar (a borrador o pendiente). Cambia la decisión del 26/10 de que el agente no publica.
+- **Cambio provisional (28/10/2026, subido y probado en parte):** el agente puede corregir sus errores. `update-post` solo modifica entradas creadas por el usuario de la conexión, sea cual sea su rol, y la nueva `trash-post` envía a la papelera (recuperable) las propias en cualquier estado, también publicadas (cambio pedido el mismo día). Probado con un Autor el ciclo completo (crear, programar, editar, papelera y restaurar); faltan los rechazos y los demás roles.
 - **Hallazgo de seguridad:** la contraseña de aplicación de la conexión vale para toda la API REST (`wp/v2`), no solo para el MCP; un Autor podría publicar y borrar saltándose el plugin. No usar en producción hasta limitarla a la ruta (ver docs/ALTERNATIVAS.md, alternativa A).
 - **Siguiente paso:** revisar [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) con backend y sistemas, marketing y dirección, y decidir la alternativa antes de seguir con el código (v0.2). Mientras tanto, subir la nueva `ConnectPage.php` a `test.wwwarcelona.net` y revocar la conexión antigua del usuario ID 3. Claude Code ya está conectado con `test-mcp-sub` (ID 6), que ahora es Autor.
 
 ## Pendientes
 
+- [ ] Enviar a GitHub el commit de la 0.2.0 y los tags (`v0.1.0` ya creado en local). Crear el tag `v0.2.0` y la release (pre-release, con el aviso de no usar en producción) cuando publicar esté probado en el sitio.
+- [ ] Subir a `test.wwwarcelona.net` `includes/Support/PostInput.php`, `includes/Abilities/CreatePost.php`, `includes/Abilities/UpdatePost.php`, `includes/Plugin.php`, `includes/Admin/ConnectPage.php` y `wwwarcelona-wp-connect.php` (versión 0.2.0), y probar con el Autor: publicar la 2501 (programada) con `update-post` y `status: publish` (debe salir ya, con la fecha actual), crear una entrada directamente publicada, despublicar una propia (`status: draft`) y `status: publish` con `scheduled_date` (rechazado). Con un Colaborador, `status: publish` debe rechazarse.
+- [ ] Entrada de prueba 2501 («Nuevo post»), programada para el 28/10/2026 a las 12:57: se publicará sola. Decidir si se deja o se envía a la papelera.
+- [ ] Valorar si `PostAccess::find()` debe dar `Permission denied` en lugar de «El ID no corresponde a una entrada (post)» cuando el ID es de otro tipo: hoy deja saber a quien tiene `edit_posts` que ese ID existe y no es una entrada (también para páginas en borrador o privadas). Riesgo bajo.
+- [x] Entrada de prueba 2499 («Qué tal»): enviada a la papelera con `trash-post` antes de publicarse, y restaurada desde el escritorio. Hecho el 28/10/2026.
+- [x] Entrada 2499 («Qué tal») programada de nuevo para el 28/10/2026 a las 12:34: se publicó sola y se envió a la papelera ya publicada. Hecho el 28/10/2026.
+- [x] Entrada 2499: vaciada la papelera desde el escritorio. Hecho el 28/10/2026.
+- [ ] Quitar el conector de claude.ai «WP NovaMira wwwarcelona test site» (claude.ai → Ajustes → Conectores). No se puede quitar desde Claude Code. El 28/10/2026 seguía configurado, aunque fallaba con HTTP 502.
+- [x] Subir a `test.wwwarcelona.net` los ficheros de `trash-post` y entradas propias, y probar con un Autor `tools/list` (cinco herramientas) y `trash-post` de una programada propia, restaurable desde el escritorio. Hecho el 28/10/2026.
+- [ ] Pruebas que faltan de `trash-post` y entradas propias: `update-post` de una entrada de otro usuario con el Editor (rechazado); Suscriptor (`Permission denied`); Colaborador con una entrada suya ya publicada: `get-post`, `update-post` y `trash-post` deben rechazarse.
+- [ ] Decidir, junto con la alternativa, si se mantiene el borrado de entradas propias y la restricción de `update-post` a entradas propias.
 - [ ] Revisar [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) con backend y sistemas, marketing y dirección, y responder a las preguntas del apartado 8.
-- [ ] Si se aprueba la alternativa A (v0.2): limitar las contraseñas del plugin a `/wwwarcelona/mcp`, paquetes de funciones por usuario, registro de uso y límite de volumen.
-- [ ] Subir `includes/Admin/ConnectPage.php` con el aviso del usuario y comprobar que lo muestra antes y después de crear la conexión.
-- [ ] Revocar la conexión creada con el usuario ID 3 (perfil de ese usuario → *Contraseñas de aplicación*). La nueva ya está en Claude Code, con `test-mcp-sub` (ID 6, Autor).
-- [ ] Decidir si se crea otro usuario Suscriptor de pruebas: `test-mcp-sub` ha pasado a Autor y ya no sirve para repetir las pruebas de Suscriptor.
-- [ ] Entrada de prueba 2470 («Hola»): programada, se publicará sola el 28/10/2026 a las 9:00. Si no debe salir, pasarla a borrador (lo puede hacer el agente con la conexión actual).
-- [ ] Decidir qué hacer con la entrada de prueba 2467 («Prueba desde Claude Code»): está programada y se publicará sola el 28/10/2026 a las 9:00. Para evitarlo, pasarla a borrador o a la papelera desde el escritorio.
+- [ ] Si se aprueba la alternativa A (v0.3): limitar las contraseñas del plugin a `/wwwarcelona/mcp`, paquetes de funciones por usuario, registro de uso y límite de volumen.
+- [x] Subir `includes/Admin/ConnectPage.php` con el aviso del usuario y comprobar que lo muestra antes y después de crear la conexión. Hecho el 28/10/2026.
+- [x] Revocar la conexión creada con el usuario ID 3 (perfil de ese usuario → *Contraseñas de aplicación*). La nueva ya está en Claude Code, con `test-mcp-sub` (ID 6, Autor). Hecho el 28/10/2026.
+- [ ] Crear usuarios de pruebas cuando haga falta repetir pruebas: `test-mcp-sub` (ID 6) se eliminó el 28/10/2026 y la conexión `wwwarcelona-test-wwwarcelona-net` se quitó de Claude Code el mismo día. Crear otra desde la página con el usuario nuevo.
+- [x] Entrada de prueba 2470 («Hola»): programada, se publicará sola el 28/10/2026 a las 9:00. Si no debe salir, pasarla a borrador (lo puede hacer el agente con la conexión actual). Hecho el 28/10/2026.
+- [x] Decidir qué hacer con la entrada de prueba 2467 («Prueba desde Claude Code»): está programada y se publicará sola el 28/10/2026 a las 9:00. Para evitarlo, pasarla a borrador o a la papelera desde el escritorio. Hecho el 28/10/2026.
 
 - [x] Confirmar que la entrada 2453 pasa de `future` a `publish` sola.
-- [ ] Enviar la entrada de prueba 2453 a la papelera desde el escritorio (el agente no puede borrar).
+- [x] Enviar la entrada de prueba 2453 a la papelera desde el escritorio (el agente no puede borrar). Hecho el 28/10/2026.
 - [x] Probar con un usuario Suscriptor: todas las herramientas deben rechazarse.
 - [x] Subir `includes/Support/PostAccess.php` corregido a `test.wwwarcelona.net` y repetir `get-post` como Suscriptor: debe dar `Permission denied`.
 - [x] Revisar el log de PHP en `test.wwwarcelona.net`: solo debería aparecer el aviso de "deprecated" del adapter.
 - [ ] **Fuera del plugin, seguridad del sitio:** `https://test.wwwarcelona.net/wp-content/debug.log` se puede descargar desde internet (HTTP 206, 27/10/2026). Mover el log fuera de la carpeta pública (`define('WP_DEBUG_LOG', '/ruta/fuera/de/htdocs/debug.log');`) o bloquearlo en la configuración del servidor. Revisar lo mismo en otros sitios. El log pesa 152 MB y está lleno de avisos de otros plugins.
-- [ ] Valorar instalar el plugin oficial MCP Adapter en lugar de llevarlo dentro de `vendor/`, para quitar el aviso de "deprecated" (v0.2).
+- [ ] Valorar instalar el plugin oficial MCP Adapter en lugar de llevarlo dentro de `vendor/`, para quitar el aviso de "deprecated" (v0.3).
 - [x] `wp-json.json`: borrado confirmado en el commit `a981dd7`.
 - [x] Primer commit (`a981dd7`, en `main`).
 - [x] Commit de la corrección de `PostAccess.php`, `ESTADO.md` y la documentación (`587e6f9`).
@@ -35,16 +48,28 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 - [ ] Revisar la página con un usuario administrador (debe recomendar un usuario propio para Claude) y comprobar que la conexión aparece en la lista y se puede revocar desde el perfil.
 - [ ] Probar el comando de la página en Windows (PowerShell) y en un Mac.
 - [ ] Probar los bloques de la alternativa por terminal en Windows (PowerShell) y en un Mac (zsh). En Linux funciona el de Linux y macOS.
-- [ ] Decidir si el agente puede editar entradas ya publicadas. Ahora puede, y el cambio se ve en directo. Recomendación: prohibirlo.
+- [ ] Decidir si el agente puede publicar y editar entradas publicadas sin revisión. Desde el 28/10/2026 puede, con entradas propias y rol Autor o superior; para exigir revisión, conectar con un Colaborador.
 - [ ] Decidir si el agente puede crear etiquetas nuevas o solo usar las existentes.
 - [ ] Acordar el rol estándar del usuario del agente: Autor, que puede programar, o Colaborador, que solo deja entradas pendientes.
 
 ## Pruebas en test.wwwarcelona.net
 
-Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y programar) y `test-mcp-sub` (ID 6; era Suscriptor en las pruebas del 26 y 27/10, ahora es Autor y su nombre visible es «test-mcp»). Comandos en la sección «Probar con curl» del README.
+Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexión actual de Claude Code desde el 28/10/2026), `test-mcp` (ID 5, puede crear y programar) y `test-mcp-sub` (ID 6, eliminado el 28/10/2026; era Suscriptor en las pruebas del 26 y 27/10, ahora es Autor y su nombre visible es «test-mcp»). Comandos en la sección «Probar con curl» del README.
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
+| 28/10/2026 | Programar la 2501 (último post según `list-posts`) con `update-post` y `scheduled_date` a 10 minutos, con `test-mcp-1` (Autor) | ✅ `future`, `2026-10-28T12:57:32+01:00` |
+| 28/10/2026 | `create-post` «Nuevo post» («Prueba para test») sin estado, con `test-mcp-1` (Autor, confirmado con `users/me?context=edit`) | ✅ Entrada 2501 en `draft`, autor ID 7 |
+| 28/10/2026 | Páginas con `test-mcp-1` (Autor): crear una página (`create-post` con `post_type: page`), editar la página Elementor 2232 «Avinent – Polarix v2» (`update-post`), enviarla a la papelera (`trash-post`) y leerla (`get-post`). IDs buscados en la API pública, sin credenciales | ✅ Crear: rechazado por el esquema («post_type no es una propiedad válida»). Editar, papelera y leer: «El ID no corresponde a una entrada (post).» No hay ninguna herramienta para Elementor. La 2232 sigue igual (`publish`, modificada el 27/10/2026) |
+| 28/10/2026 | `trash-post` de la 2499 en borrador (propia; restaurada desde el escritorio tras la prueba anterior, confirmado con `get-post`), con `test-mcp-1` (Autor) | ✅ Pasa de `draft` a `trash` |
+| 28/10/2026 | `trash-post` de la 2499 ya publicada (propia; publicada sola a las 12:34, confirmado por Adrián y por `get-post`), con `test-mcp-1` (Autor) | ✅ Pasa de `publish` a `trash`. La API pública ya no la sirve (HTTP 401) |
+| 28/10/2026 | Entrada 1439 «test 2 – guillem» (de otro usuario, ID 4, publicada) con `test-mcp-1` (Autor): `list-posts` con `search: guillem`, `get-post`, `update-post` y `trash-post`. El ID se buscó en la API pública, sin credenciales | ✅ No aparece al listar; `get-post` da `Permission denied`; `update-post` y `trash-post` dan «Solo se pueden modificar o borrar las entradas creadas por este usuario». Comprobado por la API pública que sigue sin cambios (`publish`, modificada el 17/04/2026) |
+| 28/10/2026 | Volver a programar la 2499 (restaurada, en borrador) con `update-post` y `scheduled_date` a 10 minutos, con `test-mcp-1` (Autor) | ✅ `future`, `2026-10-28T12:34:12+01:00` |
+| 28/10/2026 | Restaurar la 2499 desde *Entradas → Papelera* (comprobado por Adrián en el escritorio) | ✅ Vuelve como borrador y sin programar: no se publica sola; para que salga hay que volver a programarla o publicarla |
+| 28/10/2026 | `trash-post` de la 2499 (propia, programada), con `test-mcp-1` (Autor) | ✅ Pasa a `trash` antes de su hora de publicación y no se publica |
+| 28/10/2026 | `update-post` de la 2499 (propia, programada): título «Qué tal» y contenido «Hola», con `test-mcp-1` (Autor) | ✅ Cambian título y contenido; sigue en `future` a las 12:28 y el slug se queda en `hola` |
+| 28/10/2026 | Conexión `wwwarcelona-test-wwwarcelona-net` nueva: usuario y rol con `users/me?context=edit`, y `tools/list` | ✅ `test-mcp-1` (ID 7), rol `author`. Salen las 5 herramientas, `trash-post` incluida: la versión nueva está subida |
+| 28/10/2026 | `create-post` «Hola» («Qué tal») programada a 10 minutos, con `test-mcp-1` (Autor) | ✅ Entrada 2499 en `future`, `2026-10-28T12:28:28+01:00`, autor ID 7 |
 | 27/10/2026 | Contraseña de la conexión de Claude Code (`test-mcp-sub`, ID 6, Autor, confirmado con `users/me?context=edit`) contra la API general: `GET wp/v2/users/me` y `GET wp/v2/posts?status=draft`. Solo lectura | ⚠️ Los dos dan `200 OK`; el usuario tiene `publish_posts` y `delete_posts`. La credencial sirve fuera del MCP: podría publicar y borrar por `wp/v2`. Documentado en docs/ALTERNATIVAS.md |
 | 27/10/2026 | `create-post` «Hola» («Qué tal») programada para el 28/10/2026 a las 9:00, con `test-mcp-sub` (Autor) | ✅ Entrada 2470 en `future`, `2026-10-28T09:00:00+01:00`, autor ID 6 |
 | 27/10/2026 | Conexión `wwwarcelona-test-wwwarcelona-net` de Claude Code: usuario y rol con `users/me` | ✅ `test-mcp-sub` (ID 6), rol `author`, con `edit_posts` y `publish_posts`. Con esta conexión la 2467 (del usuario ID 3) da 403: un Autor no puede editar entradas de otros |
@@ -76,6 +101,10 @@ Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y pro
 
 | Fecha | Decisión | Motivo |
 |---|---|---|
+| 28/10/2026 | Versiones: tag `v0.1.0` en `169509e` (lo probado el 26 y 27/10) y versión 0.2.0 para papelera, entradas propias y publicar. El tag `v0.2.0` se crea cuando publicar esté probado en el sitio. El refuerzo de seguridad de la alternativa A pasa a v0.3. Las releases, como pre-release y con el aviso de no usar en producción | Hay un conjunto probado al que poder volver y otro con funciones nuevas. Etiquetar sin probar publicar daría por buena una versión sin comprobar |
+| 28/10/2026 | El agente puede publicar (`status: publish`) entradas propias, si el usuario puede publicar. Publicar una programada la publica ahora, con la fecha actual. Las propias publicadas se pueden despublicar. Las privadas siguen sin poder cambiar de estado. Sustituye a «El agente no publica» (26/10/2026) | Pedido por Adrián: igual que el resto de acciones, solo sobre entradas propias. Quien necesite revisión previa conecta con un Colaborador, que no puede publicar. Provisional hasta decidir la alternativa |
+| 28/10/2026 | `trash-post` también borra entradas propias ya publicadas (las manda a la papelera) | Pedido por Adrián: si el error ya está publicado, que la persona también pueda retirarlo. Sigue siendo recuperable y solo sobre entradas propias. El estado de una publicada sigue sin poder cambiarse con `update-post` (no se puede despublicar a borrador), pero sí su contenido |
+| 28/10/2026 | Provisional, mientras se decide la alternativa: `update-post` y la nueva `trash-post` solo actúan sobre entradas creadas por el usuario de la conexión, aunque su rol permita tocar las de otros. Borrar es enviar a la papelera, y solo borradores, pendientes y programadas | Si la persona se equivoca, que pueda corregirlo sin entrar en el escritorio, sin poder tocar el trabajo de otros ni retirar lo publicado. La papelera permite deshacerlo; si está desactivada (`EMPTY_TRASH_DAYS` a 0) no se borra, porque WordPress borraría para siempre |
 | 27/10/2026 | Antes de seguir con el código, informe de alternativas ([docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md)) para decidir con backend y sistemas, marketing y dirección. Propuesta: MCP reforzado con paquetes de funciones otorgados por usuario en el servidor | Backend y sistemas ven el MCP inseguro en producción, el MCP va a crecer con nuevas funciones y hay que comparar con Chrome, Playwright y n8n. El control no puede vivir solo en las skills: se pueden saltar |
 | 27/10/2026 | La página dice con qué usuario se crea la conexión (nombre y usuario), junto al botón y en el aviso de conexión creada | En la prueba real la conexión salió del usuario ID 3 en lugar de `test-mcp`, porque era la sesión abierta en el escritorio. Claude actúa en nombre de ese usuario, así que tiene que quedar claro antes de pulsar |
 | 27/10/2026 | Forma principal de conexión: página *Herramientas → Conectar con Claude*. Crea la contraseña de aplicación del usuario conectado y muestra un comando de una línea, válido en Mac, Linux y Windows. Los bloques de terminal quedan como alternativa | Simplificar al máximo: entrar en WordPress, pulsar un botón, copiar y pegar. Sin preguntas, sin crear contraseñas a mano y sin un bloque distinto por sistema |
@@ -94,6 +123,27 @@ Usuarios de prueba con Application Password: `test-mcp` (ID 5, puede crear y pro
 | 26/10/2026 | Las entradas publicadas se pueden editar, pero no cambiar su estado ni su fecha | Decisión provisional, pendiente de revisar |
 
 ## Historial
+
+### 28/10/2026
+
+- Versión 0.2.0: cabecera y constante del plugin, CHANGELOG separado en 0.2.0 y 0.1.0. Tag `v0.1.0` en local sobre `169509e`. El plan de la alternativa A pasa a v0.3.
+- docs/ALTERNATIVAS.md: tabla «Qué permite cada vía con la misma credencial» (plugin frente a `wp/v2`, por acción y rol, con Elementor) en el apartado 2 y nota de Elementor en la alternativa C. README: punto de seguridad de la API REST actualizado (el riesgo ya no es publicar, sino borrar para siempre, tocar lo de otros y salir de las entradas) y nota de Elementor.
+- Publicar entradas propias: `publish` añadido a `PostInput::STATUSES`, con `PostInput::publish()` (exige `publish_posts`/`publish_post`, no admite `scheduled_date` y pone la fecha actual para que una programada no vuelva a `future`). Textos de las herramientas, del servidor y de la página de conexión, README, CHANGELOG, AGENTS.md y docs/ALTERNATIVAS.md al día. `php -l` correcto y reglas probadas fuera de WordPress simulando sus funciones. Falta subir y probar en el sitio.
+- Pedido publicar ya la 2501: el plugin no lo permitía y no se hizo por otra vía.
+- Creada la entrada 2501 («Nuevo post») en borrador y programada para las 12:57.
+- Adrián vació la papelera (la 2499 queda borrada definitivamente). Intentado con el Autor crear una página, editar con Elementor la 2232 (Polarix) y enviarla a la papelera: todo rechazado, la página no cambia.
+- La 2499, restaurada otra vez (en borrador), se envió a la papelera: probado `trash-post` con un borrador propio.
+- La 2499 se publicó sola a las 12:34 y se envió a la papelera ya publicada: deja de verse en el sitio.
+- Vuelta a programar la 2499 para las 12:34. Intentado leer, editar y enviar a la papelera la 1439 («test 2 – guillem», de otro usuario) con el Autor: las tres se rechazan y la entrada no cambia.
+- Adrián confirma en el escritorio el ciclo completo con la 2499: creada, programada, editada, enviada a la papelera por el agente y restaurada desde el panel, donde queda en borrador y sin programar.
+- Enviada a la papelera la 2499 («Qué tal») con `trash-post`, antes de su hora de publicación.
+- Editada la 2499: título «Qué tal» y contenido «Hola».
+- Conectado con la nueva conexión (`test-mcp-1`, ID 7, Autor), creada desde la página. Llamadas hechas por HTTP leyendo la credencial de `~/.claude.json` sin mostrarla, porque las herramientas no estaban cargadas en la sesión. Programada la entrada 2499 («Hola») para las 12:28.
+- Revisadas las conexiones MCP de Claude Code: ninguna local de Novamira apunta a `test.wwwarcelona.net` (solo iss, consiliors, ai y, en otros proyectos, fundaciopm y trailrun). Queda el conector de claude.ai «WP NovaMira wwwarcelona test site», que se quita desde claude.ai.
+- README: nueva tabla «Quién puede usar cada herramienta» (comprobación de cada ability y qué puede hacer cada rol) y tabla de roles de «Conexión» ajustada. Las restricciones del Colaborador sobre entradas publicadas vienen de WordPress; falta comprobarlas en el sitio.
+- `trash-post` admite también entradas publicadas: quitada la comprobación de estado. Documentación al día. Falta probar en el sitio.
+- Corregir errores propios: `PostAccess::canEditOwn()` y `canDeleteOwn()` (comprueban la capacidad general antes de buscar la entrada y después que el autor sea el usuario actual); `update-post` usa `canEditOwn()`; nueva ability `trash-post` (`includes/Abilities/TrashPost.php`). Textos de la página de conexión y del servidor, README, CHANGELOG, AGENTS.md y docs/ALTERNATIVAS.md al día. `php -l` correcto y caminos probados fuera de WordPress simulando sus funciones (propia, de otro, publicada, programada, inexistente, repetida, sin capacidades). Falta probar en el sitio.
+- Limpieza del sitio de pruebas (hecha por Adrián): subida la `ConnectPage.php` con el aviso del usuario y comprobada, revocada la conexión del usuario ID 3 y eliminadas las entradas de prueba 2470, 2467 y 2453 y el usuario `test-mcp-sub`. Comprobado desde aquí que la conexión de Claude Code ya da `invalid_username`. Quitada de Claude Code la conexión `wwwarcelona-test-wwwarcelona-net`: en local solo quedan las de Novamira (iss, consiliors, ai).
 
 ### 27/10/2026
 

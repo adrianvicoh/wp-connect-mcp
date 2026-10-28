@@ -8,8 +8,27 @@ Plugin de WordPress que expone un servidor MCP propio para que Claude u otros ag
 |---|---|
 | `wwwarcelona-list-posts` | Lista entradas editables por el usuario (búsqueda, estado, paginación). |
 | `wwwarcelona-get-post` | Lee una entrada: contenido sin procesar, extracto, estado, fechas, categorías y etiquetas. |
-| `wwwarcelona-create-post` | Crea una entrada como borrador, pendiente o programada. |
-| `wwwarcelona-update-post` | Modifica solo los campos indicados de una entrada. |
+| `wwwarcelona-create-post` | Crea una entrada como borrador, pendiente, programada o publicada. |
+| `wwwarcelona-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. |
+| `wwwarcelona-trash-post` | Envía a la papelera una entrada creada por el usuario, también si ya está publicada. |
+
+Cada tool es una ability de WordPress con el mismo nombre y `/` en lugar del primer guion (`wwwarcelona/list-posts`, etc.), en la categoría `wwwarcelona-wp-connect`. Solo se exponen en el servidor `/wp-json/wwwarcelona/mcp`.
+
+### Quién puede usar cada herramienta
+
+| Tool | Comprobación | Colaborador | Autor | Editor y Administrador |
+|---|---|---|---|---|
+| `list-posts` | `edit_posts` | Solo las suyas | Solo las suyas | Las de todos |
+| `get-post` | `edit_posts` y `edit_post` sobre la entrada | Solo las suyas no publicadas | Solo las suyas | Cualquiera |
+| `create-post` | `edit_posts`; para programar o publicar, `publish_posts` | Sí, sin programar ni publicar | Sí, también programar y publicar | Sí, también programar y publicar |
+| `update-post` | `edit_posts`, que la entrada sea suya y `edit_post`; para programar o publicar, `publish_post` | Solo las suyas no publicadas, sin programar ni publicar | Solo las suyas: también programar, publicar y despublicar | Solo las suyas |
+| `trash-post` | `delete_posts`, que la entrada sea suya y `delete_post` | Solo las suyas no publicadas | Solo las suyas, también publicadas | Solo las suyas |
+
+- Un **Suscriptor** no puede usar ninguna: todas dan `Permission denied`, sin revelar si un ID existe.
+- **Modificar y borrar, solo entradas propias**, también para Editores y Administradores. Leer y listar sí incluye las de otros cuando el rol lo permite.
+- Lo de «no publicadas» del Colaborador lo impone WordPress, no el plugin: un Colaborador no puede editar ni borrar sus entradas una vez publicadas.
+- Asignar categorías y etiquetas exige además la capacidad de asignarlas (la tienen todos estos roles por defecto).
+- Si el sitio cambia los roles o sus capacidades (por ejemplo, con un plugin de roles), manda lo que tenga el usuario, no el nombre del rol.
 
 Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 
@@ -19,9 +38,10 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 | `get-post` | `id` (obligatorio). |
 | `create-post` | `title` (obligatorio), `content`, `excerpt`, `status`, `scheduled_date`, `categories`, `tags`. |
 | `update-post` | `id` (obligatorio) y cualquiera de los campos de `create-post`. Solo cambia los que se envían. |
+| `trash-post` | `id` (obligatorio). |
 
 - `content`: HTML o marcado de bloques; se filtra con las etiquetas permitidas en entradas.
-- `status`: `draft` (por defecto), `pending` o `future`.
+- `status`: `draft` (por defecto), `pending`, `future` o `publish`. `publish` publica ahora: si la entrada estaba programada, se publica con la fecha y hora actuales. No se admite junto a `scheduled_date`.
 - `scheduled_date`: ISO 8601, en el futuro (por ejemplo, `2026-10-28T09:00:00+01:00`). Sin zona horaria se usa la del sitio. Implica `future`.
 - `categories`: IDs de categorías existentes. `tags`: nombres; las que no existen se crean. Las dos listas sustituyen a las actuales.
 - Cualquier otro campo (por ejemplo, `post_type` o `author`) se rechaza.
@@ -29,10 +49,12 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 Límites:
 
 - Solo el tipo `post`; páginas y tipos personalizados se rechazan.
-- **No publica.** Estados permitidos: `draft`, `pending` y `future` (programada, con `scheduled_date` futura). Programar exige que el usuario pueda publicar.
-- En entradas ya publicadas (o privadas) se puede editar el contenido, que cambia en directo, pero no su estado ni su fecha.
-- No borra, no sube medios y no toca otras partes del sitio. El servidor solo expone estas cuatro tools, no las meta-tools de descubrimiento del servidor MCP por defecto.
-- Cada acción respeta las capacidades del usuario de WordPress (`edit_posts`, `edit_post`, `publish_post`, asignar categorías y etiquetas). Sin `edit_posts` (por ejemplo, un Suscriptor) todas las herramientas responden `Permission denied`, sin revelar si un ID existe.
+- **Publica solo entradas propias.** Estados permitidos: `draft`, `pending`, `future` (programada, con `scheduled_date` futura) y `publish`. Programar y publicar exigen que el usuario pueda publicar (Autor o superior); un Colaborador solo deja borradores y pendientes.
+- En entradas propias ya publicadas se puede editar el contenido, que cambia en directo, y también cambiar su estado: volver a borrador o pendiente la despublica. En entradas privadas se puede editar el contenido, pero no su estado ni su fecha.
+- **Solo modifica, publica y borra entradas propias** (las creadas por el usuario de la conexión), aunque su rol permita tocar las de otros: las demás dan «Solo se pueden modificar o borrar las entradas creadas por este usuario». Leer y listar sí incluye las de otros si el rol lo permite.
+- **Borrar es enviar a la papelera**: una persona puede restaurar la entrada desde el escritorio. Vuelve como borrador y sin programar, aunque estuviera programada o publicada: para que salga hay que volver a programarla o publicarla. Vale para cualquier estado: si la entrada estaba publicada, deja de verse en el sitio al momento. Un Colaborador no puede borrar sus entradas ya publicadas (WordPress no se lo permite). Si el sitio tiene la papelera desactivada (`EMPTY_TRASH_DAYS` a 0), no se borra nada.
+- No borra definitivamente, no sube medios y no toca otras partes del sitio. El servidor solo expone estas cinco tools, no las meta-tools de descubrimiento del servidor MCP por defecto.
+- Cada acción respeta las capacidades del usuario de WordPress (`edit_posts`, `edit_post`, `delete_posts`, `delete_post`, `publish_post`, asignar categorías y etiquetas). Sin `edit_posts` (por ejemplo, un Suscriptor) todas las herramientas responden `Permission denied`, sin revelar si un ID existe.
 - Las sesiones MCP van ligadas al usuario que las abre: no se pueden usar con las credenciales de otro.
 - El contenido se filtra con `wp_kses_post`, también para administradores.
 
@@ -54,17 +76,17 @@ Para actualizar, basta con subir los ficheros cambiados; no hay que reactivar el
 
 ## Conexión
 
-El usuario con el que se conecta Claude determina lo que puede hacer:
+El usuario con el que se conecta Claude determina lo que puede hacer (detalle por herramienta en «Quién puede usar cada herramienta»):
 
 | Rol | Qué puede hacer Claude |
 |---|---|
-| **Colaborador** | Crear y editar sus propias entradas como borrador o pendientes. No puede programar. |
-| **Autor** | Lo mismo, y además programar. Solo ve y edita sus propias entradas: las de otros usuarios dan `Permission denied`. |
-| **Editor** | Ver, editar y programar las entradas de cualquier usuario. |
+| **Colaborador** | Crear, editar y enviar a la papelera sus propias entradas mientras no estén publicadas, como borrador o pendientes. No puede programar ni publicar. |
+| **Autor** | Lo mismo, y además programar, publicar y despublicar sus entradas, y editar y enviar a la papelera las programadas y publicadas. Solo ve y edita sus propias entradas: las de otros usuarios dan `Permission denied`. |
+| **Editor** | Ver las entradas de cualquier usuario; editar, programar, publicar y borrar solo las suyas. |
 | **Administrador** | Lo mismo que el Editor. No recomendado: si la credencial se filtra, es la de un administrador. |
 | **Suscriptor** | Nada: todas las herramientas dan `Permission denied`. |
 
-Ningún rol permite a Claude publicar ni borrar a través de este plugin. Lo recomendable es un usuario propio para Claude, con rol Autor (o Colaborador si una persona debe revisarlo todo), no el de una persona ni el de un administrador.
+Ningún rol permite a Claude borrar definitivamente ni tocar entradas de otros usuarios a través de este plugin. Lo recomendable es un usuario propio para Claude, con rol Autor si puede publicar (o Colaborador si una persona debe revisarlo y publicarlo todo), no el de una persona ni el de un administrador.
 
 Endpoint: `https://<sitio>/wp-json/wwwarcelona/mcp` (es el dato que se usa en los comandos de abajo, no un comando).
 
@@ -78,7 +100,7 @@ Para cualquier persona, también si no es informática. No hay que saber el usua
 2. Ir a **Herramientas → Conectar con Claude** y pulsar **Crear conexión**.
 3. Pulsar **Copiar** en el comando que aparece.
 4. Abrir la terminal (Mac: *Terminal*; Windows: *PowerShell*; Linux: *Terminal*), pegar el comando y pulsar Intro.
-5. Abrir una sesión nueva de Claude Code y escribir `/mcp`: el sitio debe aparecer conectado y con 4 herramientas.
+5. Abrir una sesión nueva de Claude Code y escribir `/mcp`: el sitio debe aparecer conectado y con 5 herramientas.
 
 La página explica estos mismos pasos en pantalla.
 
@@ -109,7 +131,7 @@ No hay que descargar nada: se copia el bloque entero, se pega en la terminal y s
 
 Antes de guardar nada comprueba que el usuario y la contraseña son correctos y que el sitio tiene el plugin activo. Si algo falla, explica en lenguaje claro qué revisar. Si el sitio ya estaba conectado, pregunta antes de sustituir la conexión. La contraseña no queda en el historial de la terminal.
 
-Al terminar, el sitio queda conectado como `wwwarcelona-` más el dominio con guiones (por ejemplo, `wwwarcelona-test-wwwarcelona-net`). Después hay que abrir una sesión nueva de Claude Code y comprobar con `/mcp` que aparece conectado y con 4 herramientas.
+Al terminar, el sitio queda conectado como `wwwarcelona-` más el dominio con guiones (por ejemplo, `wwwarcelona-test-wwwarcelona-net`). Después hay que abrir una sesión nueva de Claude Code y comprobar con `/mcp` que aparece conectado y con 5 herramientas.
 
 #### Linux y macOS (Terminal)
 
@@ -252,8 +274,10 @@ Con el sitio conectado, se le pide a Claude en lenguaje normal. Por ejemplo:
 - «Crea un borrador titulado "Novedades de octubre" con este texto: …»
 - «Programa la entrada 2470 para el lunes a las 9:00.»
 - «Cambia el extracto de la entrada 1439.»
+- «Publica ahora la entrada 2501.»
+- «Borra el borrador que acabas de crear, me he equivocado de título.»
 
-Claude pide permiso antes de usar cada herramienta (salvo que se haya autorizado de forma permanente). Si se le pide publicar o borrar, responde que no puede: el plugin lo rechaza. Para publicar, una persona entra en el escritorio, revisa la entrada y la publica.
+Claude pide permiso antes de usar cada herramienta (salvo que se haya autorizado de forma permanente). Si se le pide tocar una entrada de otro usuario, o publicar con un Colaborador, responde que no puede: el plugin lo rechaza. Lo que envía a la papelera se puede restaurar desde *Entradas → Papelera*.
 
 Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Generales*). Las entradas programadas se publican solas a su hora con el cron de WordPress, que se ejecuta cuando alguien visita el sitio.
 
@@ -264,10 +288,11 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 
 ## Seguridad y limitaciones conocidas
 
-- **La contraseña de la conexión vale para toda la API REST**, no solo para el MCP: con ella se podría publicar o borrar por `wp/v2` según el rol del usuario. Hasta que se limite a la ruta del MCP, no usar el plugin en producción. Análisis y alternativas en [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md).
+- **La contraseña de la conexión vale para toda la API REST**, no solo para el MCP: con ella (o el propio agente, ejecutando `curl`) se puede hacer por `wp/v2` todo lo que permita el rol del usuario, saltándose los límites del plugin. Con un Autor, borrar para siempre sus entradas; con un Editor o un Administrador, además tocar entradas de otros, páginas, medios y, con Administrador, ajustes. Hasta que se limite a la ruta del MCP, no usar el plugin en producción. Tabla por acción y análisis en [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md), apartado 2.
+- **Elementor:** ni el plugin ni la API de WordPress editan el diseño de Elementor (se guarda en `_elementor_data`, que no está en la API).
 
-- **Otras conexiones al mismo sitio:** el límite de «no publicar ni borrar» solo vale para este plugin. Si el mismo Claude Code tiene también otra conexión con más permisos (por ejemplo, Novamira o un conector de claude.ai), podría publicar o borrar por esa vía. Para que el límite sea real, quien use esta conexión no debe tener otras al mismo sitio.
-- **Entradas ya publicadas:** se puede editar su contenido, y el cambio se ve en directo; no se puede cambiar su estado ni su fecha. Pendiente de decidir si se prohíbe (ver [ESTADO.md](ESTADO.md)).
+- **Otras conexiones al mismo sitio:** el límite de «no tocar entradas de otros» solo vale para este plugin. Si el mismo Claude Code tiene también otra conexión con más permisos (por ejemplo, Novamira o un conector de claude.ai), podría publicar o borrar por esa vía. Para que el límite sea real, quien use esta conexión no debe tener otras al mismo sitio.
+- **Publicar sin revisión:** con un Autor o superior, Claude puede publicar y modificar en directo sus entradas sin que nadie las revise. Si una persona debe revisar antes de publicar, conectar con un Colaborador.
 - **Etiquetas:** `tags` crea las que no existen, si el usuario puede asignar etiquetas.
 - **Credencial en el equipo:** queda en `~/.claude.json` y en el historial de la terminal. Es revocable y solo vale para la API de ese usuario.
 - **Log de WordPress:** si el sitio tiene `WP_DEBUG_LOG` activo, comprobar que `wp-content/debug.log` no se puede descargar desde internet. En `test.wwwarcelona.net` sí se podía; es un problema del sitio, no del plugin.
@@ -303,7 +328,7 @@ curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
   -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 
-# 3. Listar herramientas: deben salir exactamente las cuatro
+# 3. Listar herramientas: deben salir exactamente las cinco
 curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
@@ -336,9 +361,10 @@ mcp_call() {
 }
 
 mcp_call wwwarcelona-create-post '{"title":"Prueba MCP"}'
-mcp_call wwwarcelona-update-post '{"id":123,"status":"publish"}'          # debe dar RECHAZADO
+mcp_call wwwarcelona-update-post '{"id":123,"status":"publish"}'          # Autor: OK ... publish. Colaborador: RECHAZADO
 WHEN=$(date -d '+10 minutes' +%Y-%m-%dT%H:%M:%S%:z)
 mcp_call wwwarcelona-update-post '{"id":123,"scheduled_date":"'"$WHEN"'"}' # debe dar OK ... future
+mcp_call wwwarcelona-trash-post '{"id":123}'                                # debe dar OK 123 trash
 ```
 
 Los errores de las herramientas llegan dentro de `result`, con `isError: true` y el mensaje en `content[0].text`. Los rechazos por esquema (estado no permitido, campo desconocido) llegan con el texto de WordPress «tiene una entrada no válida».
@@ -347,10 +373,11 @@ Los errores de las herramientas llegan dentro de `result`, con `isError: true` y
 
 Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 
-- `tools/list` devuelve exactamente `wwwarcelona-list-posts`, `wwwarcelona-get-post`, `wwwarcelona-create-post` y `wwwarcelona-update-post`.
-- Crear un borrador, leerlo y editar su título funciona.
+- `tools/list` devuelve exactamente `wwwarcelona-list-posts`, `wwwarcelona-get-post`, `wwwarcelona-create-post`, `wwwarcelona-update-post` y `wwwarcelona-trash-post`.
+- Crear un borrador, leerlo, editar su título y enviarlo a la papelera funciona; desde el escritorio se puede restaurar.
 - Programar con `scheduled_date` a 10 minutos deja la entrada en `future`, y se publica sola a esa hora. El cron de WordPress solo se ejecuta cuando alguien visita el sitio, así que puede tardar algo más.
-- Fallan como deben: `status: publish`, `status: trash`, el ID de una página, una fecha pasada, un campo desconocido (`post_type`), un usuario Suscriptor y, con un Autor, una entrada de otro usuario.
+- Con un Autor, `status: publish` publica una entrada propia (también una programada, con la fecha actual) y `status: draft` la despublica.
+- Fallan como deben: `status: publish` con un Colaborador, `status: trash`, el ID de una página, una fecha pasada, un campo desconocido (`post_type`), un usuario Suscriptor, `update-post` y `trash-post` con una entrada de otro usuario (también con un Editor). Con un Autor, `trash-post` de una entrada propia publicada funciona y la retira del sitio.
 - Funciona junto a otros plugins que usan el adapter MCP (Novamira).
 
 ### Problemas habituales
@@ -366,7 +393,8 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 | `-32005 Session not found` | La sesión no es de ese usuario o ha caducado. Al cambiar `WP_USER` hay que repetir los pasos 1 y 2: cada sesión va ligada al usuario que la abrió. |
 | Error de `MCP-Protocol-Version` | Falta esa cabecera en los pasos 2 y siguientes. |
 | `Permission denied` con un Autor o Colaborador | La entrada es de otro usuario: estos roles solo editan las suyas. |
-| Menos de cuatro herramientas | Revisar el log de PHP; los errores del plugin llevan el prefijo `[wwwarcelona-wp-connect]`. |
+| «Solo se pueden modificar o borrar las entradas creadas por este usuario» | La entrada es de otro usuario. Pasa también con Editor y Administrador: el plugin solo modifica y borra las propias. |
+| Menos de cinco herramientas | Revisar el log de PHP; los errores del plugin llevan el prefijo `[wwwarcelona-wp-connect]`. |
 
 ## Desarrollo
 

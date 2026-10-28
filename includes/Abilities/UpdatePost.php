@@ -18,7 +18,7 @@ final class UpdatePost
     {
         wp_register_ability(self::NAME, [
             'label' => 'Editar entrada',
-            'description' => 'Modifica solo los campos indicados de una entrada (post). Puede pasarla a borrador, pendiente o programada, pero no publicarla; en entradas ya publicadas se edita el contenido sin cambiar su estado.',
+            'description' => 'Modifica solo los campos indicados de una entrada (post) creada por este usuario. Puede pasarla a borrador, pendiente, programada o publicada (si el usuario puede publicar). Publicar una programada la publica ahora.',
             'category' => Plugin::CATEGORY,
             'input_schema' => [
                 'type' => 'object',
@@ -30,7 +30,7 @@ final class UpdatePost
             ],
             'output_schema' => PostFormatter::fullSchema(),
             'execute_callback' => [self::class, 'execute'],
-            'permission_callback' => [PostAccess::class, 'canEdit'],
+            'permission_callback' => [PostAccess::class, 'canEditOwn'],
             'meta' => [
                 'annotations' => [
                     'readonly' => false,

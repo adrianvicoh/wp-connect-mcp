@@ -61,7 +61,7 @@ final class ConnectPage
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Conectar con Claude', 'wwwarcelona-wp-connect') . '</h1>';
-        echo '<p>' . esc_html__('Conecta Claude Code con este sitio para que pueda listar, leer, crear y editar entradas. No puede publicar ni borrar: deja borradores, entradas pendientes de revisión o programadas.', 'wwwarcelona-wp-connect') . '</p>';
+        echo '<p>' . esc_html__('Conecta Claude Code con este sitio para que pueda listar, leer, crear, editar, programar, publicar y enviar a la papelera entradas. Solo modifica, publica y borra las entradas creadas con tu usuario, y solo publica si tu rol lo permite.', 'wwwarcelona-wp-connect') . '</p>';
 
         if (!wp_is_application_passwords_available_for_user($user)) {
             self::renderUnavailable();

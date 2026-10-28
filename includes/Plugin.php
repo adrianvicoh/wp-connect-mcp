@@ -10,6 +10,7 @@ use Wwwarcelona\WpConnect\Abilities\CreatePost;
 use Wwwarcelona\WpConnect\Admin\ConnectPage;
 use Wwwarcelona\WpConnect\Abilities\GetPost;
 use Wwwarcelona\WpConnect\Abilities\ListPosts;
+use Wwwarcelona\WpConnect\Abilities\TrashPost;
 use Wwwarcelona\WpConnect\Abilities\UpdatePost;
 
 defined('ABSPATH') || exit;
@@ -29,6 +30,7 @@ final class Plugin
         GetPost::class,
         CreatePost::class,
         UpdatePost::class,
+        TrashPost::class,
     ];
 
     public static function boot(): void
@@ -71,7 +73,7 @@ final class Plugin
             self::ROUTE_NAMESPACE,
             self::ROUTE,
             'wwwarcelona WP Connect',
-            'Leer, crear y editar entradas. No publica: deja borradores, pendientes de revisión o programadas.',
+            'Leer entradas; crear, editar, programar, publicar y enviar a la papelera solo las propias.',
             'v' . WWWARCELONA_WP_CONNECT_VERSION,
             [HttpTransport::class],
             ErrorLogMcpErrorHandler::class,

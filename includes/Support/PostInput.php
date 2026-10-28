@@ -13,9 +13,10 @@ defined('ABSPATH') || exit;
 final class PostInput
 {
     /**
-     * Estados que el agente puede asignar. Publicar queda siempre en manos de una persona.
+     * Estados que el agente puede asignar. Publicar solo afecta a entradas propias: update-post
+     * comprueba la autoría en su permission_callback, y create-post siempre crea entradas del usuario.
      */
-    public const STATUSES = ['draft', 'pending', 'future'];
+    public const STATUSES = ['draft', 'pending', 'future', 'publish'];
 
     /**
      * @return array<string, array<string, mixed>>
@@ -38,7 +39,7 @@ final class PostInput
             'status' => [
                 'type' => 'string',
                 'enum' => self::STATUSES,
-                'description' => 'draft (borrador), pending (pendiente de revisión) o future (programada; requiere scheduled_date). No se puede publicar directamente.',
+                'description' => 'draft (borrador), pending (pendiente de revisión), future (programada; requiere scheduled_date) o publish (publicar ahora; solo entradas propias y si el usuario puede publicar).',
             ],
             'scheduled_date' => [
                 'type' => 'string',
@@ -133,9 +134,13 @@ final class PostInput
         if (!in_array($status, self::STATUSES, true)) {
             return new WP_Error(
                 'wwwarcelona_invalid_status',
-                'Estado no permitido. Usa draft, pending o future; publicar lo hace una persona.',
+                'Estado no permitido. Usa draft, pending, future o publish.',
                 ['status' => 400]
             );
+        }
+
+        if ('publish' === $status) {
+            return self::publish($date, $current);
         }
 
         if ('future' !== $status) {
@@ -173,6 +178,34 @@ final class PostInput
             'post_status' => 'future',
             'post_date' => $when->setTimezone(wp_timezone())->format('Y-m-d H:i:s'),
             'post_date_gmt' => $when->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
+            'edit_date' => true,
+        ];
+    }
+
+    /**
+     * @param mixed $date
+     * @return array<string, mixed>|WP_Error
+     */
+    private static function publish($date, ?WP_Post $current)
+    {
+        if (null !== $date) {
+            return new WP_Error('wwwarcelona_invalid_schedule', 'scheduled_date solo se admite con status future.', ['status' => 400]);
+        }
+
+        $can_publish = $current ? current_user_can('publish_post', $current->ID) : current_user_can('publish_posts');
+        if (!$can_publish) {
+            return new WP_Error('wwwarcelona_cannot_publish', 'Este usuario no puede publicar entradas.', ['status' => 403]);
+        }
+
+        if ($current && 'publish' === $current->post_status) {
+            return [];
+        }
+
+        // Fecha de ahora: con la fecha futura de una programada, WordPress la dejaría en future.
+        return [
+            'post_status' => 'publish',
+            'post_date' => current_time('mysql'),
+            'post_date_gmt' => current_time('mysql', true),
             'edit_date' => true,
         ];
     }

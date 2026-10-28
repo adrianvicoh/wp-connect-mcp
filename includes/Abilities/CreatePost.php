@@ -16,7 +16,7 @@ final class CreatePost
     {
         wp_register_ability(self::NAME, [
             'label' => 'Crear entrada',
-            'description' => 'Crea una entrada (post) como borrador, pendiente de revisión o programada. No puede publicarla directamente.',
+            'description' => 'Crea una entrada (post) del usuario como borrador, pendiente de revisión, programada o publicada (si el usuario puede publicar).',
             'category' => Plugin::CATEGORY,
             'input_schema' => [
                 'type' => 'object',
