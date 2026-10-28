@@ -14,7 +14,8 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Pendientes
 
-- [ ] Enviar a GitHub el commit de la 0.2.0 y los tags (`v0.1.0` ya creado en local). Crear el tag `v0.2.0` y la release (pre-release, con el aviso de no usar en producción) cuando publicar esté probado en el sitio.
+- [ ] `git push origin main` del commit `84e6666` (0.2.0): desde Claude Code falló el 28/10/2026 por falta de credenciales de GitHub en la terminal. Hacerlo desde VS Code o una terminal con sesión.
+- [ ] Tags: no enviarlos por ahora (decisión de Adrián, 28/10/2026). `v0.1.0` existe solo en local. Crear `v0.2.0` y la release cuando publicar esté probado y se decida enviarlos.
 - [ ] Subir a `test.wwwarcelona.net` `includes/Support/PostInput.php`, `includes/Abilities/CreatePost.php`, `includes/Abilities/UpdatePost.php`, `includes/Plugin.php`, `includes/Admin/ConnectPage.php` y `wwwarcelona-wp-connect.php` (versión 0.2.0), y probar con el Autor: publicar la 2501 (programada) con `update-post` y `status: publish` (debe salir ya, con la fecha actual), crear una entrada directamente publicada, despublicar una propia (`status: draft`) y `status: publish` con `scheduled_date` (rechazado). Con un Colaborador, `status: publish` debe rechazarse.
 - [ ] Entrada de prueba 2501 («Nuevo post»), programada para el 28/10/2026 a las 12:57: se publicará sola. Decidir si se deja o se envía a la papelera.
 - [ ] Valorar si `PostAccess::find()` debe dar `Permission denied` en lugar de «El ID no corresponde a una entrada (post)» cuando el ID es de otro tipo: hoy deja saber a quien tiene `edit_posts` que ese ID existe y no es una entrada (también para páginas en borrador o privadas). Riesgo bajo.
@@ -29,6 +30,7 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 - [ ] Si se aprueba la alternativa A (v0.3): limitar las contraseñas del plugin a `/wwwarcelona/mcp`, paquetes de funciones por usuario, registro de uso y límite de volumen.
 - [x] Subir `includes/Admin/ConnectPage.php` con el aviso del usuario y comprobar que lo muestra antes y después de crear la conexión. Hecho el 28/10/2026.
 - [x] Revocar la conexión creada con el usuario ID 3 (perfil de ese usuario → *Contraseñas de aplicación*). La nueva ya está en Claude Code, con `test-mcp-sub` (ID 6, Autor). Hecho el 28/10/2026.
+- [ ] Para seguir probando (publicar, Editor, Colaborador, Suscriptor), crear la conexión de nuevo desde la página: la de `test-mcp-1` se quitó de Claude Code el 28/10/2026. Revocar su contraseña en el perfil de `test-mcp-1` si no se va a usar.
 - [ ] Crear usuarios de pruebas cuando haga falta repetir pruebas: `test-mcp-sub` (ID 6) se eliminó el 28/10/2026 y la conexión `wwwarcelona-test-wwwarcelona-net` se quitó de Claude Code el mismo día. Crear otra desde la página con el usuario nuevo.
 - [x] Entrada de prueba 2470 («Hola»): programada, se publicará sola el 28/10/2026 a las 9:00. Si no debe salir, pasarla a borrador (lo puede hacer el agente con la conexión actual). Hecho el 28/10/2026.
 - [x] Decidir qué hacer con la entrada de prueba 2467 («Prueba desde Claude Code»): está programada y se publicará sola el 28/10/2026 a las 9:00. Para evitarlo, pasarla a borrador o a la papelera desde el escritorio. Hecho el 28/10/2026.
@@ -126,6 +128,7 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 
 ### 28/10/2026
 
+- Quitada de Claude Code la conexión `wwwarcelona-test-wwwarcelona-net` (`test-mcp-1`). No queda ninguna conexión local a `test.wwwarcelona.net`. La contraseña de aplicación sigue activa en WordPress hasta revocarla. Intentado `git push` sin tags: falló por credenciales.
 - Versión 0.2.0: cabecera y constante del plugin, CHANGELOG separado en 0.2.0 y 0.1.0. Tag `v0.1.0` en local sobre `169509e`. El plan de la alternativa A pasa a v0.3.
 - docs/ALTERNATIVAS.md: tabla «Qué permite cada vía con la misma credencial» (plugin frente a `wp/v2`, por acción y rol, con Elementor) en el apartado 2 y nota de Elementor en la alternativa C. README: punto de seguridad de la API REST actualizado (el riesgo ya no es publicar, sino borrar para siempre, tocar lo de otros y salir de las entradas) y nota de Elementor.
 - Publicar entradas propias: `publish` añadido a `PostInput::STATUSES`, con `PostInput::publish()` (exige `publish_posts`/`publish_post`, no admite `scheduled_date` y pone la fecha actual para que una programada no vuelva a `future`). Textos de las herramientas, del servidor y de la página de conexión, README, CHANGELOG, AGENTS.md y docs/ALTERNATIVAS.md al día. `php -l` correcto y reglas probadas fuera de WordPress simulando sus funciones. Falta subir y probar en el sitio.
