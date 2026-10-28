@@ -14,7 +14,7 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Pendientes
 
-- [ ] `git push origin main` del commit `84e6666` (0.2.0): desde Claude Code falló el 28/10/2026 por falta de credenciales de GitHub en la terminal. Hacerlo desde VS Code o una terminal con sesión.
+- [x] `git push origin main` de la 0.2.0 (`84e6666`) y del ESTADO (`c6f667d`), hecho por Adrián desde fuera de Claude Code (aquí no hay credenciales de GitHub). Hecho el 28/10/2026.
 - [ ] Tags: no enviarlos por ahora (decisión de Adrián, 28/10/2026). `v0.1.0` existe solo en local. Crear `v0.2.0` y la release cuando publicar esté probado y se decida enviarlos.
 - [ ] Subir a `test.wwwarcelona.net` `includes/Support/PostInput.php`, `includes/Abilities/CreatePost.php`, `includes/Abilities/UpdatePost.php`, `includes/Plugin.php`, `includes/Admin/ConnectPage.php` y `wwwarcelona-wp-connect.php` (versión 0.2.0), y probar con el Autor: publicar la 2501 (programada) con `update-post` y `status: publish` (debe salir ya, con la fecha actual), crear una entrada directamente publicada, despublicar una propia (`status: draft`) y `status: publish` con `scheduled_date` (rechazado). Con un Colaborador, `status: publish` debe rechazarse.
 - [ ] Entrada de prueba 2501 («Nuevo post»), programada para el 28/10/2026 a las 12:57: se publicará sola. Decidir si se deja o se envía a la papelera.
