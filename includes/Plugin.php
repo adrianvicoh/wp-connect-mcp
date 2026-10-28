@@ -1,25 +1,25 @@
 <?php
 
-namespace Wwwarcelona\WpConnect;
+namespace WpConnectMcp;
 
 use WP\MCP\Core\McpAdapter;
 use WP\MCP\Infrastructure\ErrorHandling\ErrorLogMcpErrorHandler;
 use WP\MCP\Infrastructure\Observability\NullMcpObservabilityHandler;
 use WP\MCP\Transport\HttpTransport;
-use Wwwarcelona\WpConnect\Abilities\CreatePost;
-use Wwwarcelona\WpConnect\Admin\ConnectPage;
-use Wwwarcelona\WpConnect\Abilities\GetPost;
-use Wwwarcelona\WpConnect\Abilities\ListPosts;
-use Wwwarcelona\WpConnect\Abilities\TrashPost;
-use Wwwarcelona\WpConnect\Abilities\UpdatePost;
+use WpConnectMcp\Abilities\CreatePost;
+use WpConnectMcp\Admin\ConnectPage;
+use WpConnectMcp\Abilities\GetPost;
+use WpConnectMcp\Abilities\ListPosts;
+use WpConnectMcp\Abilities\TrashPost;
+use WpConnectMcp\Abilities\UpdatePost;
 
 defined('ABSPATH') || exit;
 
 final class Plugin
 {
-    public const CATEGORY = 'wwwarcelona-wp-connect';
-    public const SERVER_ID = 'wwwarcelona-wp-connect';
-    public const ROUTE_NAMESPACE = 'wwwarcelona';
+    public const CATEGORY = 'wp-connect-mcp';
+    public const SERVER_ID = 'wp-connect-mcp';
+    public const ROUTE_NAMESPACE = 'wp-connect-mcp';
     public const ROUTE = 'mcp';
 
     /**
@@ -54,7 +54,7 @@ final class Plugin
     public static function registerCategory(): void
     {
         wp_register_ability_category(self::CATEGORY, [
-            'label' => 'wwwarcelona WP Connect',
+            'label' => 'WP Connect MCP',
             'description' => 'Acciones limitadas sobre entradas para agentes de IA.',
         ]);
     }
@@ -72,9 +72,9 @@ final class Plugin
             self::SERVER_ID,
             self::ROUTE_NAMESPACE,
             self::ROUTE,
-            'wwwarcelona WP Connect',
+            'WP Connect MCP',
             'Leer entradas; crear, editar, programar, publicar y enviar a la papelera solo las propias.',
-            'v' . WWWARCELONA_WP_CONNECT_VERSION,
+            'v' . WP_CONNECT_MCP_VERSION,
             [HttpTransport::class],
             ErrorLogMcpErrorHandler::class,
             NullMcpObservabilityHandler::class,
@@ -84,7 +84,7 @@ final class Plugin
         );
 
         if (is_wp_error($result)) {
-            error_log('[wwwarcelona-wp-connect] ' . $result->get_error_message());
+            error_log('[wp-connect-mcp] ' . $result->get_error_message());
         }
     }
 
@@ -92,7 +92,7 @@ final class Plugin
     {
         printf(
             '<div class="notice notice-error"><p>%s</p></div>',
-            esc_html__('wwwarcelona WP Connect necesita WordPress 6.9 o superior (Abilities API).', 'wwwarcelona-wp-connect')
+            esc_html__('WP Connect MCP necesita WordPress 6.9 o superior (Abilities API).', 'wp-connect-mcp')
         );
     }
 }

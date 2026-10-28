@@ -1,18 +1,18 @@
 <?php
 
-namespace Wwwarcelona\WpConnect\Abilities;
+namespace WpConnectMcp\Abilities;
 
 use WP_Error;
 use WP_Post;
-use Wwwarcelona\WpConnect\Plugin;
-use Wwwarcelona\WpConnect\Support\PostAccess;
-use Wwwarcelona\WpConnect\Support\PostFormatter;
+use WpConnectMcp\Plugin;
+use WpConnectMcp\Support\PostAccess;
+use WpConnectMcp\Support\PostFormatter;
 
 defined('ABSPATH') || exit;
 
 final class TrashPost
 {
-    public const NAME = 'wwwarcelona/trash-post';
+    public const NAME = 'wp-connect-mcp/trash-post';
 
     public static function register(): void
     {
@@ -55,7 +55,7 @@ final class TrashPost
         // Sin papelera, wp_trash_post() borra para siempre.
         if (!EMPTY_TRASH_DAYS) {
             return new WP_Error(
-                'wwwarcelona_trash_disabled',
+                'wp_connect_mcp_trash_disabled',
                 'La papelera está desactivada en este sitio (EMPTY_TRASH_DAYS): no se borra nada.',
                 ['status' => 409]
             );
@@ -63,7 +63,7 @@ final class TrashPost
 
         $result = wp_trash_post($post->ID);
         if (!$result instanceof WP_Post) {
-            return new WP_Error('wwwarcelona_trash_failed', 'No se ha podido enviar la entrada a la papelera.', ['status' => 500]);
+            return new WP_Error('wp_connect_mcp_trash_failed', 'No se ha podido enviar la entrada a la papelera.', ['status' => 500]);
         }
 
         return PostFormatter::summary(get_post($post->ID));

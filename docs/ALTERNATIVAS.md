@@ -20,9 +20,9 @@ Documento para decidir, con backend y sistemas, marketing y dirección, cómo se
 
 ## 2. Punto de partida y hallazgo
 
-**Hoy.** Este plugin crea un servidor MCP propio en `/wp-json/wwwarcelona/mcp` con cinco herramientas: listar, leer, crear, editar y enviar a la papelera entradas. Desde el 28/10/2026, como medida provisional hasta decidir la alternativa, el agente puede modificar, publicar y enviar a la papelera (recuperable) las entradas creadas por su usuario, también las publicadas; publicar, solo si el rol lo permite (Autor o superior). Hasta ese día no publicaba: solo dejaba borradores, entradas pendientes o programadas. Cada persona se conecta con una contraseña de aplicación de su usuario de WordPress, creada desde *Herramientas → Conectar con Claude*.
+**Hoy.** Este plugin crea un servidor MCP propio en `/wp-json/wp-connect-mcp/mcp` con cinco herramientas: listar, leer, crear, editar y enviar a la papelera entradas. Desde el 28/10/2026, como medida provisional hasta decidir la alternativa, el agente puede modificar, publicar y enviar a la papelera (recuperable) las entradas creadas por su usuario, también las publicadas; publicar, solo si el rol lo permite (Autor o superior). Hasta ese día no publicaba: solo dejaba borradores, entradas pendientes o programadas. Cada persona se conecta con una contraseña de aplicación de su usuario de WordPress, creada desde *Herramientas → Conectar con Claude*.
 
-**Hallazgo (comprobado el 27/10/2026 en `test.wwwarcelona.net`).** La contraseña de aplicación no vale solo para el MCP: vale para **toda la API REST de WordPress**. Con la credencial que Claude Code tiene guardada (usuario `test-mcp-sub`, rol Autor), `wp/v2/users/me` y `wp/v2/posts?status=draft` responden `200 OK`, y el usuario tiene `publish_posts` y `delete_posts`. Por tanto:
+**Hallazgo (comprobado el 27/10/2026 en el sitio de pruebas).** La contraseña de aplicación no vale solo para el MCP: vale para **toda la API REST de WordPress**. Con la credencial que Claude Code tiene guardada (usuario `test-mcp-sub`, rol Autor), `wp/v2/users/me` y `wp/v2/posts?status=draft` responden `200 OK`, y el usuario tiene `publish_posts` y `delete_posts`. Por tanto:
 
 - quien tenga esa credencial (o el propio agente, que en Claude Code puede ejecutar `curl`) puede hacer por `wp/v2` todo lo que permita el rol del usuario, saltándose los límites del MCP;
 - los límites del MCP (solo entradas propias, sin borrar definitivamente, sin páginas) son hoy una norma del MCP, no una barrera de seguridad.
@@ -50,7 +50,7 @@ Esto afecta a cualquier alternativa que use contraseñas de aplicación (A, C y 
 
 **Cómo funciona.** Es el plugin actual con cuatro refuerzos:
 
-1. **Contraseña limitada a la ruta.** Las contraseñas creadas por el plugin se rechazan en cualquier ruta que no sea `/wwwarcelona/mcp`, y también en XML-RPC.
+1. **Contraseña limitada a la ruta.** Las contraseñas creadas por el plugin se rechazan en cualquier ruta que no sea `/wp-connect-mcp/mcp`, y también en XML-RPC.
 2. **Paquetes de funciones por usuario, impuestos en el servidor.** Nadie tiene acceso por defecto, y el administrador otorga paquetes (ver apartado 5).
 3. **Registro de uso.** Queda anotado quién, qué función, sobre qué entrada y cuándo.
 4. **Límites de volumen**, por ejemplo un máximo de entradas creadas por usuario y hora, para cortar bucles del agente.
@@ -220,7 +220,7 @@ Lo que de verdad limita es lo que el servidor acepta. Opciones:
 | a) Solo en las skills | La skill dice qué herramientas usar | Insegura: no limita nada |
 | b) Panel con casillas por ability | El administrador marca función a función por usuario | Segura, pero no escala: con muchas funciones se vuelve inmanejable |
 | **c) Paquetes (recomendada)** | Cada plugin de skills declara un *paquete* (por ejemplo, `contenido-programado` = listar, leer, crear y editar entradas). El mismo paquete está definido en código en el servidor. El administrador otorga paquetes a usuarios, desde una pantalla mínima o con WP-CLI. Al arrancar, la skill consulta qué herramientas tiene y, si falta alguna, explica qué pedir | Segura y escalable: el detalle se define una vez, en código revisado, y el administrador solo decide «este usuario puede usar el plugin de contenido» |
-| d) Un servidor MCP por paquete | Una ruta distinta por plugin (`/wwwarcelona/mcp/contenido-programado`) | Aislamiento máximo, a costa de una conexión por plugin y usuario. Se puede pasar a esto más adelante si hace falta |
+| d) Un servidor MCP por paquete | Una ruta distinta por plugin (`/wp-connect-mcp/mcp/contenido-programado`) | Aislamiento máximo, a costa de una conexión por plugin y usuario. Se puede pasar a esto más adelante si hace falta |
 
 La opción c) recoge lo que se busca con la pregunta: la definición vive junto a las skills (el mismo nombre de paquete y la misma lista), sin gestionar casillas función a función, y la seguridad sigue en el servidor.
 
@@ -246,8 +246,8 @@ La opción c) recoge lo que se busca con la pregunta: la definición vive junto 
 4. Paquetes otorgados por un administrador, y nadie con acceso por defecto.
 5. Registro de uso activado y revisable.
 6. Rotación de contraseñas (por ejemplo, cada 90 días) y revocación al cambiar de equipo o de proyecto.
-7. Opcional: WAF o lista de IP permitidas sobre `/wp-json/wwwarcelona/mcp`.
-8. `debug.log` fuera de la carpeta pública. En `test.wwwarcelona.net` se puede descargar desde internet.
+7. Opcional: WAF o lista de IP permitidas sobre `/wp-json/wp-connect-mcp/mcp`.
+8. `debug.log` fuera de la carpeta pública. En el sitio de pruebas se podía descargar desde internet.
 9. Nadie con otra conexión de IA al mismo sitio (Novamira, conectores) que la de este plugin.
 
 Si no se aceptan estas condiciones: alternativa **B** (solo staging) o **H** (fichero e importación).

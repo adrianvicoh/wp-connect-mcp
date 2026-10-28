@@ -1,6 +1,6 @@
 <?php
 
-namespace Wwwarcelona\WpConnect\Support;
+namespace WpConnectMcp\Support;
 
 use WP_Error;
 use WP_Post;
@@ -18,11 +18,11 @@ final class PostAccess
         $post = get_post((int) $id);
 
         if (!$post instanceof WP_Post || 'trash' === $post->post_status) {
-            return new WP_Error('wwwarcelona_not_found', 'No existe ninguna entrada con ese ID.', ['status' => 404]);
+            return new WP_Error('wp_connect_mcp_not_found', 'No existe ninguna entrada con ese ID.', ['status' => 404]);
         }
 
         if ('post' !== $post->post_type) {
-            return new WP_Error('wwwarcelona_not_a_post', 'El ID no corresponde a una entrada (post).', ['status' => 400]);
+            return new WP_Error('wp_connect_mcp_not_a_post', 'El ID no corresponde a una entrada (post).', ['status' => 400]);
         }
 
         return $post;
@@ -87,7 +87,7 @@ final class PostAccess
 
         if ((int) $post->post_author !== get_current_user_id()) {
             return new WP_Error(
-                'wwwarcelona_not_own',
+                'wp_connect_mcp_not_own',
                 'Solo se pueden modificar o borrar las entradas creadas por este usuario.',
                 ['status' => 403]
             );

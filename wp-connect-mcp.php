@@ -1,23 +1,21 @@
 <?php
 
 /**
- * Plugin Name:       wwwarcelona WP Connect
+ * Plugin Name:       WP Connect MCP
  * Description:       Conecta agentes de IA a WordPress con acceso limitado a las acciones de cada tarea.
  * Version:           0.2.0
  * Requires at least: 6.9
  * Requires PHP:      7.4
- * Author:            wwwarcelona
- * Author URI:        https://wwwarcelona.com
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       wwwarcelona-wp-connect
+ * Text Domain:       wp-connect-mcp
  */
 
 defined('ABSPATH') || exit;
 
-define('WWWARCELONA_WP_CONNECT_VERSION', '0.2.0');
-define('WWWARCELONA_WP_CONNECT_FILE', __FILE__);
+define('WP_CONNECT_MCP_VERSION', '0.2.0');
+define('WP_CONNECT_MCP_FILE', __FILE__);
 
 require_once __DIR__ . '/vendor/autoload_packages.php';
 
-add_action('plugins_loaded', [\Wwwarcelona\WpConnect\Plugin::class, 'boot']);
+add_action('plugins_loaded', [\WpConnectMcp\Plugin::class, 'boot']);

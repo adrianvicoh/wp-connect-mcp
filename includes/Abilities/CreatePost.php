@@ -1,16 +1,16 @@
 <?php
 
-namespace Wwwarcelona\WpConnect\Abilities;
+namespace WpConnectMcp\Abilities;
 
-use Wwwarcelona\WpConnect\Plugin;
-use Wwwarcelona\WpConnect\Support\PostFormatter;
-use Wwwarcelona\WpConnect\Support\PostInput;
+use WpConnectMcp\Plugin;
+use WpConnectMcp\Support\PostFormatter;
+use WpConnectMcp\Support\PostInput;
 
 defined('ABSPATH') || exit;
 
 final class CreatePost
 {
-    public const NAME = 'wwwarcelona/create-post';
+    public const NAME = 'wp-connect-mcp/create-post';
 
     public static function register(): void
     {

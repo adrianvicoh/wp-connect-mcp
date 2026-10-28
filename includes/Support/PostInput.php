@@ -1,6 +1,6 @@
 <?php
 
-namespace Wwwarcelona\WpConnect\Support;
+namespace WpConnectMcp\Support;
 
 use DateTimeImmutable;
 use DateTimeZone;
@@ -121,7 +121,7 @@ final class PostInput
 
         if ($current && !in_array($current->post_status, self::STATUSES, true)) {
             return new WP_Error(
-                'wwwarcelona_status_locked',
+                'wp_connect_mcp_status_locked',
                 sprintf('La entrada está en estado "%s": se puede editar su contenido, pero no su estado ni su fecha.', $current->post_status),
                 ['status' => 403]
             );
@@ -133,7 +133,7 @@ final class PostInput
 
         if (!in_array($status, self::STATUSES, true)) {
             return new WP_Error(
-                'wwwarcelona_invalid_status',
+                'wp_connect_mcp_invalid_status',
                 'Estado no permitido. Usa draft, pending, future o publish.',
                 ['status' => 400]
             );
@@ -145,7 +145,7 @@ final class PostInput
 
         if ('future' !== $status) {
             if (null !== $date) {
-                return new WP_Error('wwwarcelona_invalid_schedule', 'scheduled_date solo se admite con status future.', ['status' => 400]);
+                return new WP_Error('wp_connect_mcp_invalid_schedule', 'scheduled_date solo se admite con status future.', ['status' => 400]);
             }
 
             return ['post_status' => $status];
@@ -153,7 +153,7 @@ final class PostInput
 
         $can_schedule = $current ? current_user_can('publish_post', $current->ID) : current_user_can('publish_posts');
         if (!$can_schedule) {
-            return new WP_Error('wwwarcelona_cannot_schedule', 'Este usuario no puede programar entradas.', ['status' => 403]);
+            return new WP_Error('wp_connect_mcp_cannot_schedule', 'Este usuario no puede programar entradas.', ['status' => 403]);
         }
 
         if (null === $date) {
@@ -161,17 +161,17 @@ final class PostInput
                 return ['post_status' => 'future'];
             }
 
-            return new WP_Error('wwwarcelona_missing_schedule', 'Para programar hace falta scheduled_date.', ['status' => 400]);
+            return new WP_Error('wp_connect_mcp_missing_schedule', 'Para programar hace falta scheduled_date.', ['status' => 400]);
         }
 
         try {
             $when = new DateTimeImmutable((string) $date, wp_timezone());
         } catch (Exception $e) {
-            return new WP_Error('wwwarcelona_invalid_schedule', 'scheduled_date no es una fecha válida.', ['status' => 400]);
+            return new WP_Error('wp_connect_mcp_invalid_schedule', 'scheduled_date no es una fecha válida.', ['status' => 400]);
         }
 
         if ($when->getTimestamp() <= time()) {
-            return new WP_Error('wwwarcelona_schedule_in_past', 'scheduled_date debe ser una fecha futura.', ['status' => 400]);
+            return new WP_Error('wp_connect_mcp_schedule_in_past', 'scheduled_date debe ser una fecha futura.', ['status' => 400]);
         }
 
         return [
@@ -189,12 +189,12 @@ final class PostInput
     private static function publish($date, ?WP_Post $current)
     {
         if (null !== $date) {
-            return new WP_Error('wwwarcelona_invalid_schedule', 'scheduled_date solo se admite con status future.', ['status' => 400]);
+            return new WP_Error('wp_connect_mcp_invalid_schedule', 'scheduled_date solo se admite con status future.', ['status' => 400]);
         }
 
         $can_publish = $current ? current_user_can('publish_post', $current->ID) : current_user_can('publish_posts');
         if (!$can_publish) {
-            return new WP_Error('wwwarcelona_cannot_publish', 'Este usuario no puede publicar entradas.', ['status' => 403]);
+            return new WP_Error('wp_connect_mcp_cannot_publish', 'Este usuario no puede publicar entradas.', ['status' => 403]);
         }
 
         if ($current && 'publish' === $current->post_status) {
@@ -217,7 +217,7 @@ final class PostInput
     private static function categories(array $ids)
     {
         if (!self::canAssign('category')) {
-            return new WP_Error('wwwarcelona_cannot_assign_terms', 'Este usuario no puede asignar categorías.', ['status' => 403]);
+            return new WP_Error('wp_connect_mcp_cannot_assign_terms', 'Este usuario no puede asignar categorías.', ['status' => 403]);
         }
 
         $ids = array_values(array_unique(array_map('intval', $ids)));
@@ -225,7 +225,7 @@ final class PostInput
         foreach ($ids as $id) {
             if (!term_exists($id, 'category')) {
                 return new WP_Error(
-                    'wwwarcelona_invalid_category',
+                    'wp_connect_mcp_invalid_category',
                     sprintf('No existe ninguna categoría con ID %d.', $id),
                     ['status' => 400]
                 );
@@ -242,7 +242,7 @@ final class PostInput
     private static function tags(array $names)
     {
         if (!self::canAssign('post_tag')) {
-            return new WP_Error('wwwarcelona_cannot_assign_terms', 'Este usuario no puede asignar etiquetas.', ['status' => 403]);
+            return new WP_Error('wp_connect_mcp_cannot_assign_terms', 'Este usuario no puede asignar etiquetas.', ['status' => 403]);
         }
 
         return array_values(array_unique(array_filter(array_map(static function ($name): string {

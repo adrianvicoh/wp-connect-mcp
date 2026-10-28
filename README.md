@@ -1,4 +1,4 @@
-# wwwarcelona WP Connect
+# WP Connect MCP
 
 Plugin de WordPress que expone un servidor MCP propio para que Claude u otros agentes trabajen con **entradas (posts)** con permisos muy limitados.
 
@@ -6,13 +6,13 @@ Plugin de WordPress que expone un servidor MCP propio para que Claude u otros ag
 
 | Tool MCP | Qué hace |
 |---|---|
-| `wwwarcelona-list-posts` | Lista entradas editables por el usuario (búsqueda, estado, paginación). |
-| `wwwarcelona-get-post` | Lee una entrada: contenido sin procesar, extracto, estado, fechas, categorías y etiquetas. |
-| `wwwarcelona-create-post` | Crea una entrada como borrador, pendiente, programada o publicada. |
-| `wwwarcelona-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. |
-| `wwwarcelona-trash-post` | Envía a la papelera una entrada creada por el usuario, también si ya está publicada. |
+| `wp-connect-mcp-list-posts` | Lista entradas editables por el usuario (búsqueda, estado, paginación). |
+| `wp-connect-mcp-get-post` | Lee una entrada: contenido sin procesar, extracto, estado, fechas, categorías y etiquetas. |
+| `wp-connect-mcp-create-post` | Crea una entrada como borrador, pendiente, programada o publicada. |
+| `wp-connect-mcp-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. |
+| `wp-connect-mcp-trash-post` | Envía a la papelera una entrada creada por el usuario, también si ya está publicada. |
 
-Cada tool es una ability de WordPress con el mismo nombre y `/` en lugar del primer guion (`wwwarcelona/list-posts`, etc.), en la categoría `wwwarcelona-wp-connect`. Solo se exponen en el servidor `/wp-json/wwwarcelona/mcp`.
+Cada tool es una ability de WordPress con el mismo nombre y `/` tras el prefijo `wp-connect-mcp` (`wp-connect-mcp/list-posts`, etc.), en la categoría `wp-connect-mcp`. Solo se exponen en el servidor `/wp-json/wp-connect-mcp/mcp`.
 
 ### Quién puede usar cada herramienta
 
@@ -68,7 +68,7 @@ El paquete `wordpress/mcp-adapter` va incluido en `vendor/` y se carga con el au
 
 ## Instalación
 
-1. Copiar la carpeta del plugin a `wp-content/plugins/wwwarcelona-wp-connect/`, **con `vendor/` incluido** (no hace falta Composer en el servidor).
+1. Copiar la carpeta del plugin a `wp-content/plugins/wp-connect-mcp/`, **con `vendor/` incluido** (no hace falta Composer en el servidor).
 2. Activarlo en *Plugins*. Si WordPress es anterior a 6.9, aparece un aviso y el plugin no hace nada.
 3. Crear el usuario que va a usar Claude (ver «Conexión») y conectarlo desde *Herramientas → Conectar con Claude*.
 
@@ -88,7 +88,7 @@ El usuario con el que se conecta Claude determina lo que puede hacer (detalle po
 
 Ningún rol permite a Claude borrar definitivamente ni tocar entradas de otros usuarios a través de este plugin. Lo recomendable es un usuario propio para Claude, con rol Autor si puede publicar (o Colaborador si una persona debe revisarlo y publicarlo todo), no el de una persona ni el de un administrador.
 
-Endpoint: `https://<sitio>/wp-json/wwwarcelona/mcp` (es el dato que se usa en los comandos de abajo, no un comando).
+Endpoint: `https://<sitio>/wp-json/wp-connect-mcp/mcp` (es el dato que se usa en los comandos de abajo, no un comando).
 
 La forma recomendada es desde el escritorio de WordPress (probada en Linux; falta probarla en Windows y Mac, ver [ESTADO.md](ESTADO.md)).
 
@@ -109,7 +109,7 @@ Qué hace la página por dentro:
 - **Contraseña de aplicación:** crea una para el usuario conectado, con el nombre «Claude Code · fecha» y el identificador de aplicación del plugin (`ConnectPage::APP_ID`).
 - **Comando de una línea:** `claude mcp add --transport http --scope user "<nombre>" "<endpoint>" --header "Authorization: Basic <credencial>"`. Solo usa comillas dobles y caracteres de base64, así que funciona igual en bash, zsh, PowerShell y el Símbolo del sistema.
 - **Se muestra una sola vez:** si se pierde, se crea otra conexión.
-- **Nombre de la conexión:** `wwwarcelona-` más el dominio con guiones (por ejemplo, `wwwarcelona-test-wwwarcelona-net`). Si ya existía, la terminal dice que ya existe; la página indica el `claude mcp remove` que hay que pegar antes.
+- **Nombre de la conexión:** `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`). Si ya existía, la terminal dice que ya existe; la página indica el `claude mcp remove` que hay que pegar antes.
 - **Lista de conexiones:** muestra las del usuario con su último uso, y enlaza al perfil para revocarlas (*Contraseñas de aplicación*).
 - **Si no están disponibles las contraseñas de aplicación** (sitio sin HTTPS o desactivadas por un plugin de seguridad), la página lo explica y no ofrece el botón.
 - **Usuario de la conexión:** la conexión siempre es del usuario con el que se ha entrado en WordPress. La página lo indica (nombre y usuario) junto al botón y al crearla, porque Claude actuará en su nombre. Si no es el correcto, hay que cerrar sesión y entrar con el que toca.
@@ -131,7 +131,7 @@ No hay que descargar nada: se copia el bloque entero, se pega en la terminal y s
 
 Antes de guardar nada comprueba que el usuario y la contraseña son correctos y que el sitio tiene el plugin activo. Si algo falla, explica en lenguaje claro qué revisar. Si el sitio ya estaba conectado, pregunta antes de sustituir la conexión. La contraseña no queda en el historial de la terminal.
 
-Al terminar, el sitio queda conectado como `wwwarcelona-` más el dominio con guiones (por ejemplo, `wwwarcelona-test-wwwarcelona-net`). Después hay que abrir una sesión nueva de Claude Code y comprobar con `/mcp` que aparece conectado y con 5 herramientas.
+Al terminar, el sitio queda conectado como `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`). Después hay que abrir una sesión nueva de Claude Code y comprobar con `/mcp` que aparece conectado y con 5 herramientas.
 
 #### Linux y macOS (Terminal)
 
@@ -144,7 +144,7 @@ si() { case "$1" in s|S|si|sí|Si|Sí|SI|SÍ) return 0 ;; *) return 1 ;; esac; }
 command -v claude >/dev/null 2>&1 || fallo "No se encuentra Claude Code en este equipo." "Instálalo primero y vuelve a pegar este bloque."
 echo "Conectar Claude Code con un sitio WordPress"
 echo "-------------------------------------------"
-read -r -p "1/4 Dirección del sitio (por ejemplo, https://test.wwwarcelona.net): " SITE </dev/tty
+read -r -p "1/4 Dirección del sitio (por ejemplo, https://example.com): " SITE </dev/tty
 SITE=$(printf '%s' "$SITE" | tr -d '[:space:]'); SITE=${SITE%/}
 [ -n "$SITE" ] || fallo "No has escrito la dirección del sitio."
 case "$SITE" in http://*|https://*) ;; *) SITE="https://$SITE" ;; esac
@@ -170,14 +170,14 @@ case "$CODE" in
   401) fallo "El usuario o la contraseña de aplicación no son correctos." "Revisa el usuario y genera una contraseña nueva en WordPress: Usuarios → (el usuario) → Contraseñas de aplicación." ;;
   *)   fallo "El sitio ha respondido con un error ($CODE)." "Pide ayuda a soporte técnico y diles este número." ;;
 esac
-echo "Comprobando que el sitio tiene el plugin wwwarcelona WP Connect…"
-MCP="$SITE/wp-json/wwwarcelona/mcp"
+echo "Comprobando que el sitio tiene el plugin WP Connect MCP…"
+MCP="$SITE/wp-json/wp-connect-mcp/mcp"
 BODY=$(curl -sS --max-time 20 -u "$WP_USER:$WP_APP_PASS" "$MCP" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"conectar-claude","version":"1.0"}}}' 2>/dev/null)
 case "$BODY" in
-  *'"wwwarcelona WP Connect"'*) echo "✅ Plugin encontrado." ;;
-  *) fallo "El sitio no tiene el plugin wwwarcelona WP Connect activo." "Pide a soporte técnico que lo instale y lo active." ;;
+  *'"WP Connect MCP"'*) echo "✅ Plugin encontrado." ;;
+  *) fallo "El sitio no tiene el plugin WP Connect MCP activo." "Pide a soporte técnico que lo instale y lo active." ;;
 esac
-NAME="wwwarcelona-$(printf '%s' "$HOST" | tr '.' '-' | tr -cd 'a-zA-Z0-9-')"
+NAME="wp-connect-mcp-$(printf '%s' "$HOST" | tr '.' '-' | tr -cd 'a-zA-Z0-9-')"
 if claude mcp get "$NAME" >/dev/null 2>&1; then
   read -r -p "Este sitio ya estaba conectado. ¿Quieres sustituir la conexión? (s/n): " OK </dev/tty
   si "$OK" || { echo "No se ha cambiado nada."; exit 0; }
@@ -206,10 +206,10 @@ Abrir **PowerShell** (no «Símbolo del sistema»), pegar el bloque entero y pul
   if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { Fallo "No se encuentra Claude Code en este equipo." "Instálalo primero y vuelve a pegar este bloque."; return }
   Write-Host "Conectar Claude Code con un sitio WordPress"
   Write-Host "-------------------------------------------"
-  $site = ("" + (Read-Host "1/4 Dirección del sitio (por ejemplo, https://test.wwwarcelona.net)")).Trim().TrimEnd('/')
+  $site = ("" + (Read-Host "1/4 Dirección del sitio (por ejemplo, https://example.com)")).Trim().TrimEnd('/')
   if (-not $site) { Fallo "No has escrito la dirección del sitio."; return }
   if ($site -notmatch '^https?://') { $site = "https://$site" }
-  try { $siteHost = ([Uri]$site).Host } catch { Fallo "La dirección no es válida." "Escríbela como en el navegador, por ejemplo https://test.wwwarcelona.net"; return }
+  try { $siteHost = ([Uri]$site).Host } catch { Fallo "La dirección no es válida." "Escríbela como en el navegador, por ejemplo https://example.com"; return }
   $siteName = $null
   try { $siteName = (Invoke-RestMethod -Uri "$site/wp-json/" -TimeoutSec 20 -UseBasicParsing).name }
   catch { if (-not $_.Exception.Response) { Fallo "No se puede conectar con $site." "Revisa que la dirección esté bien escrita y que tengas internet."; return } }
@@ -235,14 +235,14 @@ Abrir **PowerShell** (no «Símbolo del sistema»), pegar el bloque entero y pul
     else { Fallo "El sitio ha respondido con un error ($code)." "Pide ayuda a soporte técnico y diles este número." }
     return
   }
-  Write-Host "Comprobando que el sitio tiene el plugin wwwarcelona WP Connect..."
-  $mcp = "$site/wp-json/wwwarcelona/mcp"
+  Write-Host "Comprobando que el sitio tiene el plugin WP Connect MCP..."
+  $mcp = "$site/wp-json/wp-connect-mcp/mcp"
   $body = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"conectar-claude","version":"1.0"}}}'
   $init = $null
   try { $init = Invoke-RestMethod -Method Post -Uri $mcp -Headers ($headers + @{ Accept = "application/json, text/event-stream" }) -ContentType "application/json" -Body $body -TimeoutSec 20 -UseBasicParsing } catch { }
-  if ($init.result.serverInfo.name -ne "wwwarcelona WP Connect") { Fallo "El sitio no tiene el plugin wwwarcelona WP Connect activo." "Pide a soporte técnico que lo instale y lo active."; return }
+  if ($init.result.serverInfo.name -ne "WP Connect MCP") { Fallo "El sitio no tiene el plugin WP Connect MCP activo." "Pide a soporte técnico que lo instale y lo active."; return }
   Write-Host "OK: plugin encontrado." -ForegroundColor Green
-  $name = "wwwarcelona-" + (($siteHost -replace '\.', '-') -replace '[^a-zA-Z0-9-]', '')
+  $name = "wp-connect-mcp-" + (($siteHost -replace '\.', '-') -replace '[^a-zA-Z0-9-]', '')
   claude mcp get $name *> $null
   if ($LASTEXITCODE -eq 0) {
     if (-not (Si (Read-Host "Este sitio ya estaba conectado. ¿Quieres sustituir la conexión? (s/n)"))) { Write-Host "No se ha cambiado nada."; return }
@@ -270,7 +270,7 @@ Abrir **PowerShell** (no «Símbolo del sistema»), pegar el bloque entero y pul
 
 Con el sitio conectado, se le pide a Claude en lenguaje normal. Por ejemplo:
 
-- «Lista mis últimas 5 entradas en test.wwwarcelona.net.»
+- «Lista mis últimas 5 entradas en example.com.»
 - «Crea un borrador titulado "Novedades de octubre" con este texto: …»
 - «Programa la entrada 2470 para el lunes a las 9:00.»
 - «Cambia el extracto de la entrada 1439.»
@@ -283,7 +283,7 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 
 ### Quitar una conexión
 
-1. En la terminal: `claude mcp list` muestra el nombre (por ejemplo, `wwwarcelona-test-wwwarcelona-net`) y `claude mcp remove "wwwarcelona-test-wwwarcelona-net"` la borra del equipo.
+1. En la terminal: `claude mcp list` muestra el nombre (por ejemplo, `wp-connect-mcp-example-com`) y `claude mcp remove "wp-connect-mcp-example-com"` la borra del equipo.
 2. En WordPress: *Herramientas → Conectar con Claude → Revocar conexiones en tu perfil*, y revocar la contraseña «Claude Code · fecha». Sin este paso, la credencial sigue siendo válida aunque se haya quitado del equipo.
 
 ## Seguridad y limitaciones conocidas
@@ -295,7 +295,7 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 - **Publicar sin revisión:** con un Autor o superior, Claude puede publicar y modificar en directo sus entradas sin que nadie las revise. Si una persona debe revisar antes de publicar, conectar con un Colaborador.
 - **Etiquetas:** `tags` crea las que no existen, si el usuario puede asignar etiquetas.
 - **Credencial en el equipo:** queda en `~/.claude.json` y en el historial de la terminal. Es revocable y solo vale para la API de ese usuario.
-- **Log de WordPress:** si el sitio tiene `WP_DEBUG_LOG` activo, comprobar que `wp-content/debug.log` no se puede descargar desde internet. En `test.wwwarcelona.net` sí se podía; es un problema del sitio, no del plugin.
+- **Log de WordPress:** si el sitio tiene `WP_DEBUG_LOG` activo, comprobar que `wp-content/debug.log` no se puede descargar desde internet. En `example.com` sí se podía; es un problema del sitio, no del plugin.
 - **Aviso de deprecación:** el adapter MCP incluido deja un aviso en el log en cada petición. No afecta al funcionamiento.
 
 ## Probar con curl
@@ -307,10 +307,10 @@ Solo hacen falta `curl` y `php` (para leer el JSON); no hay que instalar `jq` ni
 El paso 0 comprueba la Application Password contra la API normal de WordPress, sin el plugin: si ahí falla, el problema no es del MCP.
 
 ```bash
-SITE="https://test.wwwarcelona.net"
+SITE="https://example.com"
 WP_USER="usuario-del-agente"
 read -s -p "Application Password: " WP_APP_PASS; echo   # no queda en el historial
-MCP="$SITE/wp-json/wwwarcelona/mcp"
+MCP="$SITE/wp-json/wp-connect-mcp/mcp"
 PV="2025-11-25"
 
 # 0. Comprobar credenciales: debe devolver el usuario
@@ -342,7 +342,7 @@ Para llamar a una herramienta, con la misma sesión:
 curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"wwwarcelona-list-posts","arguments":{"per_page":5}}}' \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"wp-connect-mcp-list-posts","arguments":{"per_page":5}}}' \
   | php -r 'echo json_encode(json_decode(stream_get_contents(STDIN)), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), PHP_EOL;'
 ```
 
@@ -360,11 +360,11 @@ mcp_call() {
     $p = $res["structuredContent"]; echo "OK: ", $p["id"] ?? "", " ", $p["status"] ?? "", " ", $p["date"] ?? "", PHP_EOL;'
 }
 
-mcp_call wwwarcelona-create-post '{"title":"Prueba MCP"}'
-mcp_call wwwarcelona-update-post '{"id":123,"status":"publish"}'          # Autor: OK ... publish. Colaborador: RECHAZADO
+mcp_call wp-connect-mcp-create-post '{"title":"Prueba MCP"}'
+mcp_call wp-connect-mcp-update-post '{"id":123,"status":"publish"}'          # Autor: OK ... publish. Colaborador: RECHAZADO
 WHEN=$(date -d '+10 minutes' +%Y-%m-%dT%H:%M:%S%:z)
-mcp_call wwwarcelona-update-post '{"id":123,"scheduled_date":"'"$WHEN"'"}' # debe dar OK ... future
-mcp_call wwwarcelona-trash-post '{"id":123}'                                # debe dar OK 123 trash
+mcp_call wp-connect-mcp-update-post '{"id":123,"scheduled_date":"'"$WHEN"'"}' # debe dar OK ... future
+mcp_call wp-connect-mcp-trash-post '{"id":123}'                                # debe dar OK 123 trash
 ```
 
 Los errores de las herramientas llegan dentro de `result`, con `isError: true` y el mensaje en `content[0].text`. Los rechazos por esquema (estado no permitido, campo desconocido) llegan con el texto de WordPress «tiene una entrada no válida».
@@ -373,7 +373,7 @@ Los errores de las herramientas llegan dentro de `result`, con `isError: true` y
 
 Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 
-- `tools/list` devuelve exactamente `wwwarcelona-list-posts`, `wwwarcelona-get-post`, `wwwarcelona-create-post`, `wwwarcelona-update-post` y `wwwarcelona-trash-post`.
+- `tools/list` devuelve exactamente `wp-connect-mcp-list-posts`, `wp-connect-mcp-get-post`, `wp-connect-mcp-create-post`, `wp-connect-mcp-update-post` y `wp-connect-mcp-trash-post`.
 - Crear un borrador, leerlo, editar su título y enviarlo a la papelera funciona; desde el escritorio se puede restaurar.
 - Programar con `scheduled_date` a 10 minutos deja la entrada en `future`, y se publica sola a esa hora. El cron de WordPress solo se ejecuta cuando alguien visita el sitio, así que puede tardar algo más.
 - Con un Autor, `status: publish` publica una entrada propia (también una programada, con la fecha actual) y `status: draft` la despublica.
@@ -394,7 +394,7 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 | Error de `MCP-Protocol-Version` | Falta esa cabecera en los pasos 2 y siguientes. |
 | `Permission denied` con un Autor o Colaborador | La entrada es de otro usuario: estos roles solo editan las suyas. |
 | «Solo se pueden modificar o borrar las entradas creadas por este usuario» | La entrada es de otro usuario. Pasa también con Editor y Administrador: el plugin solo modifica y borra las propias. |
-| Menos de cinco herramientas | Revisar el log de PHP; los errores del plugin llevan el prefijo `[wwwarcelona-wp-connect]`. |
+| Menos de cinco herramientas | Revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
 
 ## Desarrollo
 
@@ -404,7 +404,7 @@ composer install          # o composer dump-autoload tras añadir clases
 
 El estado del proyecto, los pendientes, las decisiones y el historial de pruebas están en [ESTADO.md](ESTADO.md).
 
-Código propio en `includes/` (PSR-4 `Wwwarcelona\WpConnect\`):
+Código propio en `includes/` (PSR-4 `WpConnectMcp\`):
 
 - `Plugin.php`: registra la categoría, las abilities, el servidor MCP y, en el escritorio, la página de conexión.
 - `Admin/ConnectPage.php`: página *Herramientas → Conectar con Claude* (crea la contraseña de aplicación y muestra el comando).

@@ -6,7 +6,7 @@ $vendorDir = dirname(__DIR__);
 $baseDir   = dirname($vendorDir);
 
 return array(
-	'Wwwarcelona\\WpConnect\\' => array(
+	'WpConnectMcp\\' => array(
 		'version' => 'dev-main',
 		'path'    => array( $baseDir . '/includes' )
 	),

@@ -9,13 +9,13 @@
   Lo más reciente va arriba en cada sección.
 
 - Documentación: [README.md](README.md) para quien instala, conecta y usa el plugin; [ESTADO.md](ESTADO.md) para el día a día (pruebas, decisiones, pendientes, historial); [CHANGELOG.md](CHANGELOG.md) solo con cambios por versión; [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) para la comparación de alternativas, la seguridad y el control de funciones por paquetes (actualizarlo si cambia la estrategia). Si cambia una herramienta, un campo, un límite o un rol, actualizar las tablas del README («Qué puede hacer el agente», «Conexión») y «Seguridad y limitaciones conocidas».
-- Plugin de WordPress (PHP 7.4+, WP 6.9+). Código propio en `includes/`, PSR-4 `Wwwarcelona\WpConnect\`; estilo PSR-12 con `defined('ABSPATH') || exit;` en cada fichero.
+- Plugin de WordPress (PHP 7.4+, WP 6.9+). Código propio en `includes/`, PSR-4 `WpConnectMcp\`; estilo PSR-12 con `defined('ABSPATH') || exit;` en cada fichero.
 - `vendor/` se versiona. Tras añadir o mover clases: `composer dump-autoload`. No editar nada dentro de `vendor/`.
 - No usar clases de `vendor/` antes de `plugins_loaded` (autoloader de Jetpack).
 - Alcance deliberadamente limitado: solo entradas (`post`), sin borrar definitivamente. Modificar, publicar y enviar a la papelera, solo entradas propias (`PostAccess::canEditOwn()` y `canDeleteOwn()`), también si están publicadas; publicar y programar, solo si el usuario puede publicar. Cualquier ability nueva debe añadirse a `Plugin::ABILITIES`, comprobar capacidades en `permission_callback` (las generales, como `edit_posts`, antes de cargar nada, para no revelar qué existe) y declarar `input_schema` con `additionalProperties: false` y `output_schema`.
 - Las reglas de estado y programación viven en `Support/PostInput.php`; no duplicarlas en las abilities.
-- Despliegue en el sitio de pruebas: subir solo los ficheros cambiados a `wp-content/plugins/wwwarcelona-wp-connect/` (con `vendor/` si cambia). No hay paso de compilación.
-- Verificación: `php -l` de los ficheros tocados y, en un WordPress de pruebas, `tools/list` y `tools/call` contra `/wp-json/wwwarcelona/mcp`. Los pasos con `curl` (sesión, cabeceras) y la lista de comprobación están en la sección «Probar con curl» del README.
+- Despliegue en el sitio de pruebas: subir solo los ficheros cambiados a `wp-content/plugins/wp-connect-mcp/` (con `vendor/` si cambia). No hay paso de compilación.
+- Verificación: `php -l` de los ficheros tocados y, en un WordPress de pruebas, `tools/list` y `tools/call` contra `/wp-json/wp-connect-mcp/mcp`. Los pasos con `curl` (sesión, cabeceras) y la lista de comprobación están en la sección «Probar con curl» del README.
 - En comandos de prueba y documentación no depender de herramientas que haya que instalar (`jq` y similares): usar solo `curl` y `php -r` para leer el JSON.
 - La forma principal de conectar Claude Code es la página **Herramientas → Conectar con Claude** (`includes/Admin/ConnectPage.php`). Al tocarla:
   - las instrucciones de la página y las del README («Conectar Claude Code desde el escritorio») deben decir lo mismo;
@@ -24,7 +24,7 @@
   - la página muestra siempre con qué usuario se crea la conexión (antes de pulsar y al crearla): Claude actúa en su nombre;
   - todo texto que se imprima se escapa (`esc_html`, `esc_textarea`, `esc_url`);
   - el formulario lleva nonce;
-  - si se cambia el formato del nombre de la conexión (`wwwarcelona-<dominio>`), cambiarlo también en los bloques de terminal.
+  - si se cambia el formato del nombre de la conexión (`wp-connect-mcp-<dominio>`), cambiarlo también en los bloques de terminal.
 - La alternativa son los **bloques para copiar y pegar** de la sección «Alternativa: desde la terminal» del README: uno para Linux y macOS, otro para Windows (PowerShell). **No crear ficheros ejecutables para usuarios finales.** Los usan personas no técnicas:
   - pedir siempre los datos de forma interactiva y confirmar el sitio (nombre y dirección) antes de seguir;
   - mensajes en español llano, que digan qué hacer;

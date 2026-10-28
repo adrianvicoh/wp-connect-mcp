@@ -1,16 +1,16 @@
 <?php
 
-namespace Wwwarcelona\WpConnect\Abilities;
+namespace WpConnectMcp\Abilities;
 
 use WP_Query;
-use Wwwarcelona\WpConnect\Plugin;
-use Wwwarcelona\WpConnect\Support\PostFormatter;
+use WpConnectMcp\Plugin;
+use WpConnectMcp\Support\PostFormatter;
 
 defined('ABSPATH') || exit;
 
 final class ListPosts
 {
-    public const NAME = 'wwwarcelona/list-posts';
+    public const NAME = 'wp-connect-mcp/list-posts';
 
     private const LISTABLE_STATUSES = ['draft', 'pending', 'future', 'publish'];
     private const MAX_PER_PAGE = 50;

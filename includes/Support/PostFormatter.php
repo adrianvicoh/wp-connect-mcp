@@ -1,6 +1,6 @@
 <?php
 
-namespace Wwwarcelona\WpConnect\Support;
+namespace WpConnectMcp\Support;
 
 use WP_Post;
 

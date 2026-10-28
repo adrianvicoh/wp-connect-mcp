@@ -1,18 +1,18 @@
 <?php
 
-namespace Wwwarcelona\WpConnect\Abilities;
+namespace WpConnectMcp\Abilities;
 
 use WP_Error;
-use Wwwarcelona\WpConnect\Plugin;
-use Wwwarcelona\WpConnect\Support\PostAccess;
-use Wwwarcelona\WpConnect\Support\PostFormatter;
-use Wwwarcelona\WpConnect\Support\PostInput;
+use WpConnectMcp\Plugin;
+use WpConnectMcp\Support\PostAccess;
+use WpConnectMcp\Support\PostFormatter;
+use WpConnectMcp\Support\PostInput;
 
 defined('ABSPATH') || exit;
 
 final class UpdatePost
 {
-    public const NAME = 'wwwarcelona/update-post';
+    public const NAME = 'wp-connect-mcp/update-post';
 
     public static function register(): void
     {
@@ -58,7 +58,7 @@ final class UpdatePost
         }
 
         if (!$data) {
-            return new WP_Error('wwwarcelona_nothing_to_update', 'No se ha indicado ningún campo que cambiar.', ['status' => 400]);
+            return new WP_Error('wp_connect_mcp_nothing_to_update', 'No se ha indicado ningún campo que cambiar.', ['status' => 400]);
         }
 
         $data['ID'] = $post->ID;
