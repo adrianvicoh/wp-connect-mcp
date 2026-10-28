@@ -15,6 +15,12 @@
 - Alcance deliberadamente limitado: solo entradas (`post`), sin borrar definitivamente. Modificar, publicar y enviar a la papelera, solo entradas propias (`PostAccess::canEditOwn()` y `canDeleteOwn()`), también si están publicadas; publicar y programar, solo si el usuario puede publicar. Cualquier ability nueva debe añadirse a `Plugin::ABILITIES`, comprobar capacidades en `permission_callback` (las generales, como `edit_posts`, antes de cargar nada, para no revelar qué existe) y declarar `input_schema` con `additionalProperties: false` y `output_schema`.
 - Las reglas de estado y programación viven en `Support/PostInput.php`; no duplicarlas en las abilities.
 - Despliegue en el sitio de pruebas: subir solo los ficheros cambiados a `wp-content/plugins/wp-connect-mcp/` (con `vendor/` si cambia). No hay paso de compilación.
+- Zip de cada versión, para instalar desde *Plugins → Añadir nuevo → Subir plugin*: tras el commit de la versión, desde la raíz del repositorio y con el árbol limpio, generar `~/Descargas/wp-connect-mcp-<versión>.zip` (la versión sale de la cabecera `Version:` de `wp-connect-mcp.php`). Lleva solo `wp-connect-mcp.php`, `includes/` y `vendor/`, dentro de la carpeta `wp-connect-mcp/` (sin versión, para que WordPress lo instale siempre en la misma carpeta):
+
+  ```bash
+  V=$(sed -n 's/^ \* Version: *//p' wp-connect-mcp.php)
+  git archive --format=zip --prefix=wp-connect-mcp/ -o ~/Descargas/wp-connect-mcp-$V.zip HEAD wp-connect-mcp.php includes vendor
+  ```
 - Verificación: `php -l` de los ficheros tocados y, en un WordPress de pruebas, `tools/list` y `tools/call` contra `/wp-json/wp-connect-mcp/mcp`. Los pasos con `curl` (sesión, cabeceras) y la lista de comprobación están en la sección «Probar con curl» del README.
 - En comandos de prueba y documentación no depender de herramientas que haya que instalar (`jq` y similares): usar solo `curl` y `php -r` para leer el JSON.
 - La forma principal de conectar Claude Code es la página **Herramientas → Conectar con Claude** (`includes/Admin/ConnectPage.php`). Al tocarla:
