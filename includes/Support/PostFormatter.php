@@ -21,6 +21,7 @@ final class PostFormatter
             'modified' => self::date($post, 'modified'),
             'link' => (string) get_permalink($post),
             'edit_link' => (string) get_edit_post_link($post, 'raw'),
+            'categories' => array_map('intval', wp_get_post_categories($post->ID, ['fields' => 'ids'])),
         ];
     }
 
@@ -34,8 +35,11 @@ final class PostFormatter
             'content' => $post->post_content,
             'excerpt' => $post->post_excerpt,
             'author' => (int) $post->post_author,
-            'categories' => array_map('intval', wp_get_post_categories($post->ID, ['fields' => 'ids'])),
             'tags' => array_values(wp_get_post_tags($post->ID, ['fields' => 'names'])),
+            'seo_title' => (string) get_post_meta($post->ID, '_yoast_wpseo_title', true),
+            'seo_description' => (string) get_post_meta($post->ID, '_yoast_wpseo_metadesc', true),
+            'focus_keyword' => (string) get_post_meta($post->ID, '_yoast_wpseo_focuskw', true),
+            'featured_image' => get_post_thumbnail_id($post->ID) ?: null,
         ];
     }
 
@@ -54,6 +58,7 @@ final class PostFormatter
                 'modified' => ['type' => ['string', 'null']],
                 'link' => ['type' => 'string'],
                 'edit_link' => ['type' => 'string'],
+                'categories' => ['type' => 'array', 'items' => ['type' => 'integer']],
             ],
             'required' => ['id', 'title', 'status'],
         ];
@@ -72,6 +77,10 @@ final class PostFormatter
             'author' => ['type' => 'integer'],
             'categories' => ['type' => 'array', 'items' => ['type' => 'integer']],
             'tags' => ['type' => 'array', 'items' => ['type' => 'string']],
+            'seo_title' => ['type' => 'string'],
+            'seo_description' => ['type' => 'string'],
+            'focus_keyword' => ['type' => 'string'],
+            'featured_image' => ['type' => ['integer', 'null']],
         ];
         $schema['required'][] = 'content';
 

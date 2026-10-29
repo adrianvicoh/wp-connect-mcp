@@ -28,6 +28,10 @@ final class PostInput
                 'type' => 'string',
                 'description' => 'Título de la entrada (texto plano).',
             ],
+            'slug' => [
+                'type' => 'string',
+                'description' => 'Slug de la entrada. Se sanea y WordPress resuelve los duplicados.',
+            ],
             'content' => [
                 'type' => 'string',
                 'description' => 'Contenido en HTML o marcado de bloques. Se filtra con las etiquetas permitidas en entradas.',
@@ -56,6 +60,25 @@ final class PostInput
                 'items' => ['type' => 'string'],
                 'description' => 'Nombres de etiquetas; las que no existan se crean. Sustituye las actuales.',
             ],
+            'seo_title' => [
+                'type' => 'string',
+                'maxLength' => 70,
+                'description' => 'Título SEO de Yoast (máximo 70 caracteres). Requiere Yoast SEO activo.',
+            ],
+            'seo_description' => [
+                'type' => 'string',
+                'maxLength' => 160,
+                'description' => 'Metadescripción de Yoast (máximo 160 caracteres). Requiere Yoast SEO activo.',
+            ],
+            'focus_keyword' => [
+                'type' => 'string',
+                'description' => 'Frase clave objetivo de Yoast. Requiere Yoast SEO activo.',
+            ],
+            'featured_image' => [
+                'type' => 'integer',
+                'minimum' => 0,
+                'description' => 'ID de una imagen subida por el usuario de la conexión; 0 quita la imagen destacada.',
+            ],
         ];
     }
 
@@ -71,6 +94,10 @@ final class PostInput
 
         if (array_key_exists('title', $input)) {
             $data['post_title'] = sanitize_text_field($input['title']);
+        }
+
+        if (array_key_exists('slug', $input)) {
+            $data['post_name'] = sanitize_title($input['slug']);
         }
 
         if (array_key_exists('content', $input)) {

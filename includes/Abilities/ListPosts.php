@@ -45,6 +45,11 @@ final class ListPosts
                         'minimum' => 1,
                         'description' => 'Página (por defecto 1).',
                     ],
+                    'category' => [
+                        'type' => 'integer',
+                        'minimum' => 1,
+                        'description' => 'ID de categoría por la que filtrar.',
+                    ],
                 ],
                 'additionalProperties' => false,
             ],
@@ -94,6 +99,10 @@ final class ListPosts
 
         if (!empty($input['search'])) {
             $args['s'] = sanitize_text_field($input['search']);
+        }
+
+        if (!empty($input['category'])) {
+            $args['cat'] = (int) $input['category'];
         }
 
         if (!current_user_can('edit_others_posts')) {

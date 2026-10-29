@@ -5,6 +5,7 @@ namespace WpConnectMcp\Abilities;
 use WpConnectMcp\Plugin;
 use WpConnectMcp\Support\PostFormatter;
 use WpConnectMcp\Support\PostInput;
+use WpConnectMcp\Support\PostExtras;
 
 defined('ABSPATH') || exit;
 
@@ -48,6 +49,11 @@ final class CreatePost
      */
     public static function execute(array $input)
     {
+        $extras = PostExtras::validate($input);
+        if (is_wp_error($extras)) {
+            return $extras;
+        }
+
         $data = PostInput::toPostData($input);
         if (is_wp_error($data)) {
             return $data;
@@ -59,6 +65,8 @@ final class CreatePost
         if (is_wp_error($id)) {
             return $id;
         }
+
+        PostExtras::apply($id, $extras);
 
         return PostFormatter::full(get_post($id));
     }

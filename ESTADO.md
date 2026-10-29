@@ -4,7 +4,8 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Situación actual
 
-- **Versión:** 0.2.0 en `main`, sin tag hasta probar publicar en el sitio. La 0.1.0 tiene el tag `v0.1.0` (commit `169509e`).
+- **Desarrollo 29/10/2026 (terminado en local, sin subir):** versión 0.2.1 con los requisitos de `post-create-wwwarcelona/docs/requisitos-wp-connect-mcp.md`: nueve tools en total, con categorías, usuario conectado, estado de plantillas, slug, Yoast, subida de imágenes/imagen destacada y filtro por categoría. El repositorio `post-create-wwwarcelona` se usó solo como referencia y no se modificó.
+- **Versión:** 0.2.1 en `main`, con ZIP instalable generado y sin tag hasta probarla en el sitio. La 0.1.0 tiene el tag `v0.1.0` (commit `169509e`).
 - **Estado:** funcionando en `test.wwwarcelona.net`. Probados conexión, `tools/list`, crear, leer, editar, programar (con publicación automática confirmada), los rechazos principales, el usuario Suscriptor y una tarea real desde Claude Code con la conexión de la página.
 - **Documentación:** README, AGENTS.md y CHANGELOG al día a 27/10/2026. Nuevo [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md): alternativas para usar IA en WordPress, seguridad y control de funciones por paquetes.
 - **Nuevo nombre (28/10/2026, sin subir):** el plugin pasa a llamarse **WP Connect MCP** (`wp-connect-mcp`), sin referencias a la marca: carpeta y fichero principal `wp-connect-mcp/wp-connect-mcp.php`, espacio de nombres `WpConnectMcp\`, endpoint `/wp-json/wp-connect-mcp/mcp`, herramientas `wp-connect-mcp-*` y conexión `wp-connect-mcp-<dominio>`. Rompe lo instalado: hay que instalarlo como plugin nuevo y volver a crear la conexión. Antes se llamaba «wwwarcelona WP Connect» (`wwwarcelona-wp-connect`): las filas de pruebas, decisiones e historial anteriores a este cambio conservan los nombres de entonces (ruta `/wwwarcelona/mcp`, herramientas `wwwarcelona-*`, conexión `wwwarcelona-<dominio>`).
@@ -15,11 +16,15 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Pendientes
 
-- [ ] Instalar el plugin renombrado en `test.wwwarcelona.net`. El 28/10/2026 se subieron por error los ficheros anteriores al cambio de nombre (confirmado por Adrián; por eso sigue la ruta antigua). Pasos: desactivar y borrar «wwwarcelona WP Connect» (carpeta `wwwarcelona-wp-connect/`), subir `~/Descargas/wp-connect-mcp-0.2.0.zip` desde *Plugins → Añadir nuevo → Subir plugin* (o la carpeta completa como `wp-content/plugins/wp-connect-mcp/`, con `vendor/`) y activarla. Crear la conexión de nuevo desde la página (`wp-connect-mcp-test-wwwarcelona-net`) y comprobar `tools/list`: cinco herramientas `wp-connect-mcp-*`. Las conexiones antiguas de Claude Code dejan de funcionar.
+- [x] Crear el commit de la 0.2.1 y generar `~/Descargas/wp-connect-mcp-0.2.1.zip` desde él. Hecho el 29/10/2026.
+- [x] Implementar y verificar localmente categorías, campos Yoast, slug, subida de imágenes/imagen destacada, usuario actual, estado de plantillas y filtro de entradas por categoría. Hecho el 29/10/2026; falta la prueba integrada en WordPress.
+- [ ] Subir los ficheros nuevos y cambiados a `test.wwwarcelona.net` y ejecutar la ronda integrada: `tools/list` (nueve), `get-current-user` (confirmar usuario y rol), categorías, plantillas, crear con slug/Yoast, subir imagen válida, destacarla y probar los rechazos de formato, tamaño y autoría.
+- [ ] Decidir con marketing si se admite `elementor_data`; no se implementa sin esa decisión por el mayor riesgo y coste de validación.
+- [ ] Instalar el plugin renombrado en `test.wwwarcelona.net`. El 28/10/2026 se subieron por error los ficheros anteriores al cambio de nombre (confirmado por Adrián; por eso sigue la ruta antigua). Pasos: desactivar y borrar «wwwarcelona WP Connect» (carpeta `wwwarcelona-wp-connect/`), subir `~/Descargas/wp-connect-mcp-0.2.1.zip` desde *Plugins → Añadir nuevo → Subir plugin* (o la carpeta completa como `wp-content/plugins/wp-connect-mcp/`, con `vendor/`) y activarla. Crear la conexión de nuevo desde la página (`wp-connect-mcp-test-wwwarcelona-net`) y comprobar `tools/list`: nueve herramientas `wp-connect-mcp-*`. Las conexiones antiguas de Claude Code dejan de funcionar.
 - [ ] Decidir si se renombra la carpeta local del repositorio (`wwwarcelona-wp-connect`); el remoto ya es `wp-connect-mcp`.
 - [x] `git push origin main` de la 0.2.0 (`84e6666`) y del ESTADO (`c6f667d`), hecho por Adrián desde fuera de Claude Code (aquí no hay credenciales de GitHub). Hecho el 28/10/2026.
-- [ ] Tags: no enviarlos por ahora (decisión de Adrián, 28/10/2026). `v0.1.0` existe solo en local. Crear `v0.2.0` y la release cuando publicar esté probado y se decida enviarlos.
-- [ ] Subir a `test.wwwarcelona.net` `includes/Support/PostInput.php`, `includes/Abilities/CreatePost.php`, `includes/Abilities/UpdatePost.php`, `includes/Plugin.php`, `includes/Admin/ConnectPage.php` y `wp-connect-mcp.php` (versión 0.2.0), y probar con el Autor: publicar la 2501 (programada) con `update-post` y `status: publish` (debe salir ya, con la fecha actual), crear una entrada directamente publicada, despublicar una propia (`status: draft`) y `status: publish` con `scheduled_date` (rechazado). Con un Colaborador, `status: publish` debe rechazarse.
+- [ ] Tags: no enviarlos por ahora (decisión de Adrián, 28/10/2026). `v0.1.0` existe solo en local. Crear `v0.2.1` y la release cuando la versión esté probada y se decida enviarlos.
+- [ ] Subir a `test.wwwarcelona.net` los ficheros de la versión 0.2.1 y probar con el Autor: publicar la 2501 (programada) con `update-post` y `status: publish` (debe salir ya, con la fecha actual), crear una entrada directamente publicada, despublicar una propia (`status: draft`) y `status: publish` con `scheduled_date` (rechazado). Con un Colaborador, `status: publish` debe rechazarse; completar además la ronda de las nueve tools indicada arriba.
 - [ ] Entrada de prueba 2501 («Nuevo post»), programada para el 28/10/2026 a las 12:57: se publicará sola. Decidir si se deja o se envía a la papelera.
 - [ ] Valorar si `PostAccess::find()` debe dar `Permission denied` en lugar de «El ID no corresponde a una entrada (post)» cuando el ID es de otro tipo: hoy deja saber a quien tiene `edit_posts` que ese ID existe y no es una entrada (también para páginas en borrador o privadas). Riesgo bajo.
 - [x] Entrada de prueba 2499 («Qué tal»): enviada a la papelera con `trash-post` antes de publicarse, y restaurada desde el escritorio. Hecho el 28/10/2026.
@@ -63,6 +68,7 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
+| 29/10/2026 | Verificación local final de la 0.2.1: `composer dump-autoload`, `php -l` de todo el código propio, coherencia de versión, `git diff --check`, registro de nueve abilities y ramas aisladas de Yoast, longitud SEO, autoría de imagen, base64 inválido y límite de tamaño | ✅ Sin errores. Falta probar la integración con WordPress, Yoast, Elementor y la biblioteca de medios en `test.wwwarcelona.net` |
 | 28/10/2026 | Tras subir el plugin renombrado (según Adrián), comprobación sin credenciales: `POST` a `wp-connect-mcp/mcp` y a `wwwarcelona/mcp` (también con `?rest_route=` para saltar cachés), índice de `wp-json/`, `users/5`, `6`, `7`, `posts/2501` y `claude mcp list` | ❌ `wp-connect-mcp/mcp` da 404 (`rest_no_route`) y `wwwarcelona/mcp` da 401: sigue registrada la ruta antigua y no la nueva. La 2501 da 401: existe, aunque no es pública (borrador o papelera); no está borrada definitivamente. Los usuarios dan 404, que no confirma nada (la API pública oculta a quien no tiene entradas publicadas). En Claude Code no queda ninguna conexión del plugin ✅ |
 | 28/10/2026 | Programar la 2501 (último post según `list-posts`) con `update-post` y `scheduled_date` a 10 minutos, con `test-mcp-1` (Autor) | ✅ `future`, `2026-10-28T12:57:32+01:00` |
 | 28/10/2026 | `create-post` «Nuevo post» («Prueba para test») sin estado, con `test-mcp-1` (Autor, confirmado con `users/me?context=edit`) | ✅ Entrada 2501 en `draft`, autor ID 7 |
@@ -107,6 +113,8 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 
 | Fecha | Decisión | Motivo |
 |---|---|---|
+| 29/10/2026 | Publicar la ampliación local como versión 0.2.1 y reunirla en un único commit | Pedido de Adrián; distingue estas nueve tools y los nuevos campos de la 0.2.0 ya enviada a `main` |
+| 29/10/2026 | Implementar del documento de requisitos la prioridad 1, `get-template-status` y las mejoras pequeñas de `list-posts`; dejar `elementor_data` y el refuerzo de credenciales/paquetes para decisiones separadas | Son ampliaciones acotadas que necesita el flujo de posts. El propio documento condiciona Elementor a una decisión de marketing, y la seguridad de credenciales afecta a la arquitectura completa |
 | 28/10/2026 | Versiones: tag `v0.1.0` en `169509e` (lo probado el 26 y 27/10) y versión 0.2.0 para papelera, entradas propias y publicar. El tag `v0.2.0` se crea cuando publicar esté probado en el sitio. El refuerzo de seguridad de la alternativa A pasa a v0.3. Las releases, como pre-release y con el aviso de no usar en producción | Hay un conjunto probado al que poder volver y otro con funciones nuevas. Etiquetar sin probar publicar daría por buena una versión sin comprobar |
 | 28/10/2026 | El agente puede publicar (`status: publish`) entradas propias, si el usuario puede publicar. Publicar una programada la publica ahora, con la fecha actual. Las propias publicadas se pueden despublicar. Las privadas siguen sin poder cambiar de estado. Sustituye a «El agente no publica» (26/10/2026) | Pedido por Adrián: igual que el resto de acciones, solo sobre entradas propias. Quien necesite revisión previa conecta con un Colaborador, que no puede publicar. Provisional hasta decidir la alternativa |
 | 28/10/2026 | `trash-post` también borra entradas propias ya publicadas (las manda a la papelera) | Pedido por Adrián: si el error ya está publicado, que la persona también pueda retirarlo. Sigue siendo recuperable y solo sobre entradas propias. El estado de una publicada sigue sin poder cambiarse con `update-post` (no se puede despublicar a borrador), pero sí su contenido |
@@ -131,6 +139,16 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 | 26/10/2026 | Las entradas publicadas se pueden editar, pero no cambiar su estado ni su fecha | Decisión provisional, pendiente de revisar |
 
 ## Historial
+
+### 29/10/2026
+
+- Creado el commit de la versión 0.2.1 y generado `~/Descargas/wp-connect-mcp-0.2.1.zip` (470 KB) con `wp-connect-mcp.php`, `includes/` y `vendor/` dentro de la carpeta `wp-connect-mcp/`. Sin push ni tag.
+- Verificación final de la 0.2.1 correcta: autoload regenerado, sintaxis de todos los PHP, cabecera y constante de versión, nueve abilities y diff sin errores; preparada para el commit solicitado.
+- Versión aumentada de 0.2.0 a 0.2.1 en la cabecera, constante, CHANGELOG y referencias operativas de ESTADO; las referencias históricas a 0.2.0 se conservan.
+- Implementadas cuatro tools nuevas: `list-categories`, `get-current-user`, `get-template-status` y `upload-media`; esta última solo admite JPEG/PNG/WebP/GIF reales en base64, 2 MB por defecto y no admite URL para evitar SSRF.
+- `create-post` y `update-post` admiten `slug`, campos Yoast e imagen destacada propia; `get-post` los devuelve. `list-posts` devuelve categorías y admite filtro por categoría. README, CHANGELOG, página de conexión y ALTERNATIVAS al día.
+- Generado de nuevo el autoload de Composer. Sintaxis correcta y pruebas locales aisladas correctas; queda la ronda integrada en WordPress.
+- Leídos, sin modificar, `post-create-wwwarcelona/docs/requisitos-wp-connect-mcp.md` y `propuestas-proceso-marketing.md`; alcance local fijado para este repositorio.
 
 ### 28/10/2026
 

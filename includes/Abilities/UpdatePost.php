@@ -7,6 +7,7 @@ use WpConnectMcp\Plugin;
 use WpConnectMcp\Support\PostAccess;
 use WpConnectMcp\Support\PostFormatter;
 use WpConnectMcp\Support\PostInput;
+use WpConnectMcp\Support\PostExtras;
 
 defined('ABSPATH') || exit;
 
@@ -52,21 +53,30 @@ final class UpdatePost
             return $post;
         }
 
+        $extras = PostExtras::validate($input);
+        if (is_wp_error($extras)) {
+            return $extras;
+        }
+
         $data = PostInput::toPostData($input, $post);
         if (is_wp_error($data)) {
             return $data;
         }
 
-        if (!$data) {
+        if (!$data && !$extras) {
             return new WP_Error('wp_connect_mcp_nothing_to_update', 'No se ha indicado ningún campo que cambiar.', ['status' => 400]);
         }
 
-        $data['ID'] = $post->ID;
+        if ($data) {
+            $data['ID'] = $post->ID;
 
-        $result = wp_update_post(wp_slash($data), true);
-        if (is_wp_error($result)) {
-            return $result;
+            $result = wp_update_post(wp_slash($data), true);
+            if (is_wp_error($result)) {
+                return $result;
+            }
         }
+
+        PostExtras::apply($post->ID, $extras);
 
         return PostFormatter::full(get_post($post->ID));
     }

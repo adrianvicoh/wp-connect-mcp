@@ -9,9 +9,13 @@ use WP\MCP\Transport\HttpTransport;
 use WpConnectMcp\Abilities\CreatePost;
 use WpConnectMcp\Admin\ConnectPage;
 use WpConnectMcp\Abilities\GetPost;
+use WpConnectMcp\Abilities\GetCurrentUser;
+use WpConnectMcp\Abilities\GetTemplateStatus;
+use WpConnectMcp\Abilities\ListCategories;
 use WpConnectMcp\Abilities\ListPosts;
 use WpConnectMcp\Abilities\TrashPost;
 use WpConnectMcp\Abilities\UpdatePost;
+use WpConnectMcp\Abilities\UploadMedia;
 
 defined('ABSPATH') || exit;
 
@@ -27,9 +31,13 @@ final class Plugin
      */
     private const ABILITIES = [
         ListPosts::class,
+        ListCategories::class,
         GetPost::class,
+        GetCurrentUser::class,
+        GetTemplateStatus::class,
         CreatePost::class,
         UpdatePost::class,
+        UploadMedia::class,
         TrashPost::class,
     ];
 
@@ -73,7 +81,7 @@ final class Plugin
             self::ROUTE_NAMESPACE,
             self::ROUTE,
             'WP Connect MCP',
-            'Leer entradas; crear, editar, programar, publicar y enviar a la papelera solo las propias.',
+            'Leer entradas y categorías; crear, editar, programar, publicar, subir imágenes y enviar a la papelera solo contenido propio.',
             'v' . WP_CONNECT_MCP_VERSION,
             [HttpTransport::class],
             ErrorLogMcpErrorHandler::class,

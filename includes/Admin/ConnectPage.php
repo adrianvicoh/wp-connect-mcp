@@ -61,7 +61,7 @@ final class ConnectPage
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Conectar con Claude', 'wp-connect-mcp') . '</h1>';
-        echo '<p>' . esc_html__('Conecta Claude Code con este sitio para que pueda listar, leer, crear, editar, programar, publicar y enviar a la papelera entradas. Solo modifica, publica y borra las entradas creadas con tu usuario, y solo publica si tu rol lo permite.', 'wp-connect-mcp') . '</p>';
+        echo '<p>' . esc_html__('Conecta Claude Code con este sitio para que pueda consultar categorías y plantillas, crear y editar entradas, completar Yoast, subir imágenes, programar, publicar y enviar a la papelera. Solo modifica, publica y borra contenido creado con tu usuario, y solo publica o sube archivos si tu rol lo permite.', 'wp-connect-mcp') . '</p>';
 
         if (!wp_is_application_passwords_available_for_user($user)) {
             self::renderUnavailable();

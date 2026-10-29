@@ -2,6 +2,15 @@
 
 Cambios por versión publicada. El día a día (pruebas, decisiones, pendientes) está en [ESTADO.md](ESTADO.md).
 
+## 0.2.1 (sin publicar)
+
+No usar en producción: la contraseña de la conexión vale para toda la API REST de WordPress (ver «Seguridad y limitaciones conocidas» en el README).
+
+- Nuevas tools `list-categories`, `get-current-user`, `get-template-status` y `upload-media`. La subida solo admite imágenes JPEG, PNG, WebP o GIF en base64, con límite de 2 MB por defecto y sin URLs remotas.
+- `create-post` y `update-post` admiten `slug`, título SEO, metadescripción y frase clave de Yoast, e imagen destacada subida por el mismo usuario. `get-post` devuelve estos campos.
+- `list-posts` devuelve categorías y enlace, y admite filtrar por categoría.
+- Documentación de herramientas, permisos, campos, límites y pruebas actualizada para las nueve tools.
+
 ## 0.2.0 (sin publicar)
 
 No usar en producción: la contraseña de la conexión vale para toda la API REST de WordPress (ver «Seguridad y limitaciones conocidas» en el README).

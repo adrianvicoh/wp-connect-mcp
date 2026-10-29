@@ -7,9 +7,13 @@ Plugin de WordPress que expone un servidor MCP propio para que Claude u otros ag
 | Tool MCP | Qué hace |
 |---|---|
 | `wp-connect-mcp-list-posts` | Lista entradas editables por el usuario (búsqueda, estado, paginación). |
+| `wp-connect-mcp-list-categories` | Lista categorías con sus IDs, jerarquía y enlaces. |
 | `wp-connect-mcp-get-post` | Lee una entrada: contenido sin procesar, extracto, estado, fechas, categorías y etiquetas. |
+| `wp-connect-mcp-get-current-user` | Indica el usuario, sus roles y las capacidades relevantes de la conexión. |
+| `wp-connect-mcp-get-template-status` | Comprueba las plantillas publicadas de Elementor Pro para la entrada y el archivo del blog. |
 | `wp-connect-mcp-create-post` | Crea una entrada como borrador, pendiente, programada o publicada. |
 | `wp-connect-mcp-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. |
+| `wp-connect-mcp-upload-media` | Sube una imagen en base64, opcionalmente adjunta a una entrada propia. |
 | `wp-connect-mcp-trash-post` | Envía a la papelera una entrada creada por el usuario, también si ya está publicada. |
 
 Cada tool es una ability de WordPress con el mismo nombre y `/` tras el prefijo `wp-connect-mcp` (`wp-connect-mcp/list-posts`, etc.), en la categoría `wp-connect-mcp`. Solo se exponen en el servidor `/wp-json/wp-connect-mcp/mcp`.
@@ -19,9 +23,13 @@ Cada tool es una ability de WordPress con el mismo nombre y `/` tras el prefijo 
 | Tool | Comprobación | Colaborador | Autor | Editor y Administrador |
 |---|---|---|---|---|
 | `list-posts` | `edit_posts` | Solo las suyas | Solo las suyas | Las de todos |
+| `list-categories` | `edit_posts` | Sí | Sí | Sí |
 | `get-post` | `edit_posts` y `edit_post` sobre la entrada | Solo las suyas no publicadas | Solo las suyas | Cualquiera |
+| `get-current-user` | `edit_posts` | Sí | Sí | Sí |
+| `get-template-status` | `edit_posts` | Sí | Sí | Sí |
 | `create-post` | `edit_posts`; para programar o publicar, `publish_posts` | Sí, sin programar ni publicar | Sí, también programar y publicar | Sí, también programar y publicar |
 | `update-post` | `edit_posts`, que la entrada sea suya y `edit_post`; para programar o publicar, `publish_post` | Solo las suyas no publicadas, sin programar ni publicar | Solo las suyas: también programar, publicar y despublicar | Solo las suyas |
+| `upload-media` | `upload_files`; con `post_id`, además entrada propia y `edit_post` | No por defecto | Sí | Sí |
 | `trash-post` | `delete_posts`, que la entrada sea suya y `delete_post` | Solo las suyas no publicadas | Solo las suyas, también publicadas | Solo las suyas |
 
 - Un **Suscriptor** no puede usar ninguna: todas dan `Permission denied`, sin revelar si un ID existe.
@@ -34,16 +42,24 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 
 | Tool | Campos |
 |---|---|
-| `list-posts` | `search` (texto en título y contenido), `status` (lista de `draft`, `pending`, `future`, `publish`; por defecto todos), `per_page` (1–50, por defecto 20), `page`. Ordena por última modificación. |
+| `list-posts` | `search` (texto en título y contenido), `status` (lista de `draft`, `pending`, `future`, `publish`; por defecto todos), `category` (ID), `per_page` (1–50, por defecto 20), `page`. Devuelve también `link` y `categories`; ordena por última modificación. |
+| `list-categories` | `search`, `per_page` (1–100, por defecto 100), `page`. |
 | `get-post` | `id` (obligatorio). |
-| `create-post` | `title` (obligatorio), `content`, `excerpt`, `status`, `scheduled_date`, `categories`, `tags`. |
+| `get-current-user` | Sin campos. |
+| `get-template-status` | Sin campos. |
+| `create-post` | `title` (obligatorio), `slug`, `content`, `excerpt`, `status`, `scheduled_date`, `categories`, `tags`, `seo_title`, `seo_description`, `focus_keyword`, `featured_image`. |
 | `update-post` | `id` (obligatorio) y cualquiera de los campos de `create-post`. Solo cambia los que se envían. |
+| `upload-media` | `filename` y `data` (base64) obligatorios; `alt`, `title` y `post_id` opcionales. |
 | `trash-post` | `id` (obligatorio). |
 
 - `content`: HTML o marcado de bloques; se filtra con las etiquetas permitidas en entradas.
 - `status`: `draft` (por defecto), `pending`, `future` o `publish`. `publish` publica ahora: si la entrada estaba programada, se publica con la fecha y hora actuales. No se admite junto a `scheduled_date`.
 - `scheduled_date`: ISO 8601, en el futuro (por ejemplo, `2026-10-28T09:00:00+01:00`). Sin zona horaria se usa la del sitio. Implica `future`.
 - `categories`: IDs de categorías existentes. `tags`: nombres; las que no existen se crean. Las dos listas sustituyen a las actuales.
+- `slug`: se sanea con las reglas de WordPress; si ya existe, WordPress lo hace único.
+- `seo_title` (máximo 70 caracteres), `seo_description` (máximo 160) y `focus_keyword`: se guardan en los campos de Yoast SEO. Si Yoast no está activo, la operación se rechaza con un error claro.
+- `featured_image`: ID de una imagen subida por el mismo usuario de la conexión; `0` la quita.
+- `upload-media` solo admite JPEG, PNG, WebP y GIF reales, no solo por extensión; máximo 2 MB por defecto. No admite URLs remotas para evitar SSRF. El límite se puede cambiar con el filtro `wp_connect_mcp_max_upload_bytes`.
 - Cualquier otro campo (por ejemplo, `post_type` o `author`) se rechaza.
 
 Límites:
@@ -53,7 +69,7 @@ Límites:
 - En entradas propias ya publicadas se puede editar el contenido, que cambia en directo, y también cambiar su estado: volver a borrador o pendiente la despublica. En entradas privadas se puede editar el contenido, pero no su estado ni su fecha.
 - **Solo modifica, publica y borra entradas propias** (las creadas por el usuario de la conexión), aunque su rol permita tocar las de otros: las demás dan «Solo se pueden modificar o borrar las entradas creadas por este usuario». Leer y listar sí incluye las de otros si el rol lo permite.
 - **Borrar es enviar a la papelera**: una persona puede restaurar la entrada desde el escritorio. Vuelve como borrador y sin programar, aunque estuviera programada o publicada: para que salga hay que volver a programarla o publicarla. Vale para cualquier estado: si la entrada estaba publicada, deja de verse en el sitio al momento. Un Colaborador no puede borrar sus entradas ya publicadas (WordPress no se lo permite). Si el sitio tiene la papelera desactivada (`EMPTY_TRASH_DAYS` a 0), no se borra nada.
-- No borra definitivamente, no sube medios y no toca otras partes del sitio. El servidor solo expone estas cinco tools, no las meta-tools de descubrimiento del servidor MCP por defecto.
+- No borra definitivamente ni toca páginas, usuarios, ajustes, plugins o temas. Solo sube imágenes del usuario autenticado. El servidor expone exactamente estas nueve tools, no las meta-tools de descubrimiento del servidor MCP por defecto.
 - Cada acción respeta las capacidades del usuario de WordPress (`edit_posts`, `edit_post`, `delete_posts`, `delete_post`, `publish_post`, asignar categorías y etiquetas). Sin `edit_posts` (por ejemplo, un Suscriptor) todas las herramientas responden `Permission denied`, sin revelar si un ID existe.
 - Las sesiones MCP van ligadas al usuario que las abre: no se pueden usar con las credenciales de otro.
 - El contenido se filtra con `wp_kses_post`, también para administradores.
@@ -100,7 +116,7 @@ Para cualquier persona, también si no es informática. No hay que saber el usua
 2. Ir a **Herramientas → Conectar con Claude** y pulsar **Crear conexión**.
 3. Pulsar **Copiar** en el comando que aparece.
 4. Abrir la terminal (Mac: *Terminal*; Windows: *PowerShell*; Linux: *Terminal*), pegar el comando y pulsar Intro.
-5. Abrir una sesión nueva de Claude Code y escribir `/mcp`: el sitio debe aparecer conectado y con 5 herramientas.
+5. Abrir una sesión nueva de Claude Code y escribir `/mcp`: el sitio debe aparecer conectado y con 9 herramientas.
 
 La página explica estos mismos pasos en pantalla.
 
@@ -131,7 +147,7 @@ No hay que descargar nada: se copia el bloque entero, se pega en la terminal y s
 
 Antes de guardar nada comprueba que el usuario y la contraseña son correctos y que el sitio tiene el plugin activo. Si algo falla, explica en lenguaje claro qué revisar. Si el sitio ya estaba conectado, pregunta antes de sustituir la conexión. La contraseña no queda en el historial de la terminal.
 
-Al terminar, el sitio queda conectado como `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`). Después hay que abrir una sesión nueva de Claude Code y comprobar con `/mcp` que aparece conectado y con 5 herramientas.
+Al terminar, el sitio queda conectado como `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`). Después hay que abrir una sesión nueva de Claude Code y comprobar con `/mcp` que aparece conectado y con 9 herramientas.
 
 #### Linux y macOS (Terminal)
 
@@ -289,7 +305,8 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 ## Seguridad y limitaciones conocidas
 
 - **La contraseña de la conexión vale para toda la API REST**, no solo para el MCP: con ella (o el propio agente, ejecutando `curl`) se puede hacer por `wp/v2` todo lo que permita el rol del usuario, saltándose los límites del plugin. Con un Autor, borrar para siempre sus entradas; con un Editor o un Administrador, además tocar entradas de otros, páginas, medios y, con Administrador, ajustes. Hasta que se limite a la ruta del MCP, no usar el plugin en producción. Tabla por acción y análisis en [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md), apartado 2.
-- **Elementor:** ni el plugin ni la API de WordPress editan el diseño de Elementor (se guarda en `_elementor_data`, que no está en la API).
+- **Elementor:** `get-template-status` solo comprueba si existen plantillas publicadas aplicables al blog; no lee ni modifica su contenido. Ni el plugin ni la API de WordPress editan el diseño de Elementor (se guarda en `_elementor_data`, que no está en la API).
+- **Yoast SEO:** se escriben sus metadatos de título, descripción y frase clave. No se simula la puntuación del editor de Yoast; el análisis se recalcula al abrir o guardar la entrada en WordPress.
 
 - **Otras conexiones al mismo sitio:** el límite de «no tocar entradas de otros» solo vale para este plugin. Si el mismo Claude Code tiene también otra conexión con más permisos (por ejemplo, Novamira o un conector de claude.ai), podría publicar o borrar por esa vía. Para que el límite sea real, quien use esta conexión no debe tener otras al mismo sitio.
 - **Publicar sin revisión:** con un Autor o superior, Claude puede publicar y modificar en directo sus entradas sin que nadie las revise. Si una persona debe revisar antes de publicar, conectar con un Colaborador.
@@ -328,7 +345,7 @@ curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
   -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 
-# 3. Listar herramientas: deben salir exactamente las cinco
+# 3. Listar herramientas: deben salir exactamente las nueve
 curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
@@ -373,7 +390,10 @@ Los errores de las herramientas llegan dentro de `result`, con `isError: true` y
 
 Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 
-- `tools/list` devuelve exactamente `wp-connect-mcp-list-posts`, `wp-connect-mcp-get-post`, `wp-connect-mcp-create-post`, `wp-connect-mcp-update-post` y `wp-connect-mcp-trash-post`.
+- `tools/list` devuelve exactamente las nueve herramientas de «Qué puede hacer el agente».
+- `list-categories` devuelve IDs utilizables; `get-current-user` confirma el usuario y rol antes de las pruebas; `get-template-status` no devuelve contenido de Elementor.
+- Crear un borrador con `slug` y, si Yoast está activo, sus tres campos SEO; `get-post` devuelve los valores guardados.
+- `upload-media` acepta una imagen válida menor de 2 MB, permite usar su ID como `featured_image` y rechaza un archivo falso con extensión `.jpg`, un archivo mayor del límite y una imagen de otro usuario.
 - Crear un borrador, leerlo, editar su título y enviarlo a la papelera funciona; desde el escritorio se puede restaurar.
 - Programar con `scheduled_date` a 10 minutos deja la entrada en `future`, y se publica sola a esa hora. El cron de WordPress solo se ejecuta cuando alguien visita el sitio, así que puede tardar algo más.
 - Con un Autor, `status: publish` publica una entrada propia (también una programada, con la fecha actual) y `status: draft` la despublica.
@@ -394,7 +414,7 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 | Error de `MCP-Protocol-Version` | Falta esa cabecera en los pasos 2 y siguientes. |
 | `Permission denied` con un Autor o Colaborador | La entrada es de otro usuario: estos roles solo editan las suyas. |
 | «Solo se pueden modificar o borrar las entradas creadas por este usuario» | La entrada es de otro usuario. Pasa también con Editor y Administrador: el plugin solo modifica y borra las propias. |
-| Menos de cinco herramientas | Revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
+| Menos de nueve herramientas | Revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
 
 ## Desarrollo
 
@@ -410,5 +430,6 @@ Código propio en `includes/` (PSR-4 `WpConnectMcp\`):
 - `Admin/ConnectPage.php`: página *Herramientas → Conectar con Claude* (crea la contraseña de aplicación y muestra el comando).
 - `Abilities/`: una clase por ability (`NAME`, `register()`, `execute()`).
 - `Support/PostInput.php`: saneado y reglas de estado y programación.
+- `Support/PostExtras.php`: validación y escritura de Yoast e imagen destacada.
 - `Support/PostAccess.php`: carga de la entrada y comprobación de permisos.
 - `Support/PostFormatter.php`: formato y esquemas de salida.
