@@ -2,6 +2,20 @@
 
 Cambios por versión publicada. El día a día (pruebas, decisiones, pendientes) está en [ESTADO.md](ESTADO.md).
 
+## 0.2.2 (sin publicar)
+
+No usar en producción, por el mismo motivo que la 0.2.1.
+
+Cambios pedidos tras la primera prueba real con el plugin de Claude `post-create-wwwarcelona` (30–31/10/2026).
+
+- **`get-template-status` ya no da falsos negativos:** reconoce todas las condiciones de Elementor Pro que cubren el blog (`include/archive`, `include/archive/post_archive`, categorías y etiquetas con o sin ID, `include/general`; en la entrada, `include/singular` e `include/singular/post`). Antes, una plantilla de Archivo con `include/archive` salía como inexistente. Nuevo campo `templates`, con todas las plantillas publicadas de cada tipo, sus condiciones y `covers_blog`.
+- **`create-post` y `update-post` responden sin el contenido:** devuelven los campos de la entrada más `content_length`, `content_hash` (MD5), `headings` y `links`. Con el nuevo campo `return_content: true`, también el contenido. `get-post` no cambia.
+- **Página *Conectar con Claude*:**
+  - los comandos ya no llevan la contraseña: se muestra aparte, con su botón «Copiar» y el aviso de no pegarla en ningún chat;
+  - hay un bloque para Mac y Linux y otro para Windows (PowerShell), en pestañas, que piden la contraseña sin mostrarla, la comprueban, preguntan antes de sustituir una conexión y la guardan en Claude Code. Deja de admitirse el Símbolo del sistema (cmd);
+  - muestra destacados el usuario y el rol, avisa si el usuario puede gestionar entradas de otros y exige marcar una casilla de confirmación antes de crear la conexión.
+- Bloque de Windows del README: lee la contraseña con `NetworkCredential`, que funciona igual en PowerShell 5.1 y 7.
+
 ## 0.2.1 (sin publicar)
 
 No usar en producción: la contraseña de la conexión vale para toda la API REST de WordPress (ver «Seguridad y limitaciones conocidas» en el README).

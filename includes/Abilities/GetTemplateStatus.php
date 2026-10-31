@@ -11,11 +11,18 @@ final class GetTemplateStatus
 {
     public const NAME = 'wp-connect-mcp/get-template-status';
 
+    /**
+     * Condiciones de Elementor Pro (sin include/ ni exclude/) que cubren las entradas del blog.
+     * Las de archivo admiten un ID detrás (archive/category/5): cubren el blog igualmente.
+     */
+    private const SINGLE_COVERS = ['general', 'singular', 'singular/post'];
+    private const ARCHIVE_COVERS = ['general', 'archive', 'archive/post_archive', 'archive/category', 'archive/post_tag'];
+
     public static function register(): void
     {
         wp_register_ability(self::NAME, [
             'label' => 'Comprobar plantillas del blog',
-            'description' => 'Comprueba si Elementor Pro tiene plantillas publicadas aplicables a la entrada individual y al archivo del blog. No devuelve su contenido.',
+            'description' => 'Comprueba si Elementor Pro tiene plantillas publicadas que se aplican a la entrada individual y al archivo del blog (categorías incluidas). Devuelve también las demás plantillas de cada tipo con sus condiciones y si cubren el blog. No devuelve su contenido.',
             'category' => Plugin::CATEGORY,
             'input_schema' => ['type' => 'object', 'default' => [], 'properties' => [], 'additionalProperties' => false],
             'output_schema' => [
@@ -47,8 +54,8 @@ final class GetTemplateStatus
         return [
             'elementor_active' => defined('ELEMENTOR_VERSION') || did_action('elementor/loaded') > 0,
             'elementor_pro_active' => defined('ELEMENTOR_PRO_VERSION'),
-            'single_post' => self::findTemplate(['single-post', 'single'], ['singular/post', 'single/post', 'general']),
-            'archive' => self::findTemplate(['archive'], ['archive/post', 'post_archive', 'archive/posts', 'general']),
+            'single_post' => self::findTemplate(['single-post', 'single'], self::SINGLE_COVERS, false),
+            'archive' => self::findTemplate(['archive'], self::ARCHIVE_COVERS, true),
         ];
     }
 
@@ -57,24 +64,40 @@ final class GetTemplateStatus
      */
     private static function templateSchema(): array
     {
+        $conditions = ['type' => 'array', 'items' => ['type' => 'string']];
+
         return [
             'type' => 'object',
             'properties' => [
-                'exists' => ['type' => 'boolean'],
+                'exists' => ['type' => 'boolean', 'description' => 'Hay una plantilla publicada que se aplica al blog.'],
                 'id' => ['type' => ['integer', 'null']],
                 'title' => ['type' => ['string', 'null']],
-                'conditions' => ['type' => 'array', 'items' => ['type' => 'string']],
+                'conditions' => $conditions,
+                'templates' => [
+                    'type' => 'array',
+                    'description' => 'Todas las plantillas publicadas de este tipo, cubran o no el blog.',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'id' => ['type' => 'integer'],
+                            'title' => ['type' => 'string'],
+                            'conditions' => $conditions,
+                            'covers_blog' => ['type' => 'boolean'],
+                        ],
+                        'required' => ['id', 'title', 'conditions', 'covers_blog'],
+                    ],
+                ],
             ],
-            'required' => ['exists', 'id', 'title', 'conditions'],
+            'required' => ['exists', 'id', 'title', 'conditions', 'templates'],
         ];
     }
 
     /**
      * @param array<string> $types
-     * @param array<string> $conditionFragments
+     * @param array<string> $covers
      * @return array<string, mixed>
      */
-    private static function findTemplate(array $types, array $conditionFragments): array
+    private static function findTemplate(array $types, array $covers, bool $allowId): array
     {
         $query = new WP_Query([
             'post_type' => 'elementor_library',
@@ -90,21 +113,25 @@ final class GetTemplateStatus
             ]],
         ]);
 
+        $result = ['exists' => false, 'id' => null, 'title' => null, 'conditions' => [], 'templates' => []];
+
         foreach ($query->posts as $post) {
             $conditions = self::conditions((int) $post->ID);
-            if (!self::matches($conditions, $conditionFragments)) {
-                continue;
-            }
-
-            return [
-                'exists' => true,
+            $template = [
                 'id' => (int) $post->ID,
                 'title' => $post->post_title,
                 'conditions' => $conditions,
+                'covers_blog' => self::coversBlog($conditions, $covers, $allowId),
             ];
+            $result['templates'][] = $template;
+
+            if ($template['covers_blog'] && !$result['exists']) {
+                $result = ['exists' => true] + $template + $result;
+                unset($result['covers_blog']);
+            }
         }
 
-        return ['exists' => false, 'id' => null, 'title' => null, 'conditions' => []];
+        return $result;
     }
 
     /**
@@ -121,23 +148,37 @@ final class GetTemplateStatus
     }
 
     /**
+     * Cubre el blog si alguna inclusión está en $covers y ninguna exclusión amplia (sin ID) la anula.
+     *
      * @param array<string> $conditions
-     * @param array<string> $fragments
+     * @param array<string> $covers
      */
-    private static function matches(array $conditions, array $fragments): bool
+    private static function coversBlog(array $conditions, array $covers, bool $allowId): bool
     {
+        $included = false;
+
         foreach ($conditions as $condition) {
-            if (0 !== strpos($condition, 'include/')) {
+            $parts = explode('/', $condition);
+            $mode = array_shift($parts);
+            $name = implode('/', $parts);
+
+            if ('exclude' === $mode && in_array($name, $covers, true)) {
+                return false;
+            }
+
+            if ('include' !== $mode) {
                 continue;
             }
 
-            foreach ($fragments as $fragment) {
-                if (false !== strpos($condition, $fragment)) {
-                    return true;
-                }
+            if ($allowId && count($parts) > 2 && ctype_digit((string) end($parts))) {
+                $name = implode('/', array_slice($parts, 0, -1));
+            }
+
+            if (in_array($name, $covers, true)) {
+                $included = true;
             }
         }
 
-        return false;
+        return $included;
     }
 }

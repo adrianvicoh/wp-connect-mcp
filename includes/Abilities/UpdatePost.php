@@ -25,11 +25,17 @@ final class UpdatePost
                 'type' => 'object',
                 'properties' => [
                     'id' => ['type' => 'integer', 'minimum' => 1, 'description' => 'ID de la entrada.'],
-                ] + PostInput::schemaProperties(),
+                ] + PostInput::schemaProperties() + [
+                    'return_content' => [
+                        'type' => 'boolean',
+                        'default' => false,
+                        'description' => 'Devolver también el contenido guardado. Por defecto solo se devuelve un resumen (longitud, MD5, encabezados y enlaces).',
+                    ],
+                ],
                 'required' => ['id'],
                 'additionalProperties' => false,
             ],
-            'output_schema' => PostFormatter::fullSchema(),
+            'output_schema' => PostFormatter::savedSchema(),
             'execute_callback' => [self::class, 'execute'],
             'permission_callback' => [PostAccess::class, 'canEditOwn'],
             'meta' => [
@@ -78,6 +84,6 @@ final class UpdatePost
 
         PostExtras::apply($post->ID, $extras);
 
-        return PostFormatter::full(get_post($post->ID));
+        return PostFormatter::saved(get_post($post->ID), !empty($input['return_content']));
     }
 }

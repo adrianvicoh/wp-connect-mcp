@@ -10,9 +10,9 @@ Plugin de WordPress que expone un servidor MCP propio para que Claude u otros ag
 | `wp-connect-mcp-list-categories` | Lista categorías con sus IDs, jerarquía y enlaces. |
 | `wp-connect-mcp-get-post` | Lee una entrada: contenido sin procesar, extracto, estado, fechas, categorías y etiquetas. |
 | `wp-connect-mcp-get-current-user` | Indica el usuario, sus roles y las capacidades relevantes de la conexión. |
-| `wp-connect-mcp-get-template-status` | Comprueba las plantillas publicadas de Elementor Pro para la entrada y el archivo del blog. |
-| `wp-connect-mcp-create-post` | Crea una entrada como borrador, pendiente, programada o publicada. |
-| `wp-connect-mcp-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. |
+| `wp-connect-mcp-get-template-status` | Comprueba si hay plantillas publicadas de Elementor Pro que se aplican a la entrada y al archivo del blog, y lista todas las de cada tipo con sus condiciones. |
+| `wp-connect-mcp-create-post` | Crea una entrada como borrador, pendiente, programada o publicada. Devuelve un resumen sin el contenido. |
+| `wp-connect-mcp-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. Devuelve un resumen sin el contenido. |
 | `wp-connect-mcp-upload-media` | Sube una imagen en base64, opcionalmente adjunta a una entrada propia. |
 | `wp-connect-mcp-trash-post` | Envía a la papelera una entrada creada por el usuario, también si ya está publicada. |
 
@@ -47,7 +47,7 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 | `get-post` | `id` (obligatorio). |
 | `get-current-user` | Sin campos. |
 | `get-template-status` | Sin campos. |
-| `create-post` | `title` (obligatorio), `slug`, `content`, `excerpt`, `status`, `scheduled_date`, `categories`, `tags`, `seo_title`, `seo_description`, `focus_keyword`, `featured_image`. |
+| `create-post` | `title` (obligatorio), `slug`, `content`, `excerpt`, `status`, `scheduled_date`, `categories`, `tags`, `seo_title`, `seo_description`, `focus_keyword`, `featured_image`, `return_content`. |
 | `update-post` | `id` (obligatorio) y cualquiera de los campos de `create-post`. Solo cambia los que se envían. |
 | `upload-media` | `filename` y `data` (base64) obligatorios; `alt`, `title` y `post_id` opcionales. |
 | `trash-post` | `id` (obligatorio). |
@@ -59,6 +59,8 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 - `slug`: se sanea con las reglas de WordPress; si ya existe, WordPress lo hace único.
 - `seo_title` (máximo 70 caracteres), `seo_description` (máximo 160) y `focus_keyword`: se guardan en los campos de Yoast SEO. Si Yoast no está activo, la operación se rechaza con un error claro.
 - `featured_image`: ID de una imagen subida por el mismo usuario de la conexión; `0` la quita.
+- Respuesta de `create-post` y `update-post`: los mismos campos que `get-post` salvo `content`, más `content_length` (caracteres), `content_hash` (MD5 del contenido guardado), `headings` (número de encabezados) y `links` (número de enlaces). Si `content_hash` coincide con el MD5 del contenido enviado (`md5sum` del fichero), ha llegado entero y el filtro no ha quitado nada. Con `return_content: true` devuelven también `content`. Así, subir un lote no repite cada texto de ida y de vuelta.
+- `get-template-status`: para `single_post` y `archive`, `exists`, `id`, `title` y `conditions` indican la plantilla que se aplica al blog, y `templates` lista todas las publicadas de ese tipo con sus condiciones y `covers_blog`. Cubren el blog, en el archivo, las condiciones de Elementor `include/general`, `include/archive` (todos los archivos), `include/archive/post_archive` y las de categorías y etiquetas (con o sin ID); en la entrada, `include/general`, `include/singular` y `include/singular/post`. Una exclusión amplia del mismo grupo (por ejemplo, `exclude/archive`) lo anula. Las plantillas solo de autor, fecha, búsqueda, una entrada concreta o una categoría de entradas aparecen en `templates` con `covers_blog: false`.
 - `upload-media` solo admite JPEG, PNG, WebP y GIF reales, no solo por extensión; máximo 2 MB por defecto. No admite URLs remotas para evitar SSRF. El límite se puede cambiar con el filtro `wp_connect_mcp_max_upload_bytes`.
 - Cualquier otro campo (por ejemplo, `post_type` o `author`) se rechaza.
 
@@ -106,33 +108,36 @@ Ningún rol permite a Claude borrar definitivamente ni tocar entradas de otros u
 
 Endpoint: `https://<sitio>/wp-json/wp-connect-mcp/mcp` (es el dato que se usa en los comandos de abajo, no un comando).
 
-La forma recomendada es desde el escritorio de WordPress (probada en Linux; falta probarla en Windows y Mac, ver [ESTADO.md](ESTADO.md)).
+La forma recomendada es desde el escritorio de WordPress. La versión con la contraseña aparte (0.2.2) está probada fuera de WordPress, con el bloque de Mac y Linux; falta probarla en el sitio, en Windows y en un Mac (ver [ESTADO.md](ESTADO.md)).
 
 ### Conectar Claude Code desde el escritorio (recomendado)
 
 Para cualquier persona, también si no es informática. No hay que saber el usuario, la contraseña ni la dirección del sitio.
 
 1. Entrar en el WordPress con el usuario que va a usar Claude.
-2. Ir a **Herramientas → Conectar con Claude** y pulsar **Crear conexión**.
-3. Pulsar **Copiar** en el comando que aparece.
+2. Ir a **Herramientas → Conectar con Claude**, comprobar el usuario y el rol que muestra, marcar la casilla «Sí, crear la conexión para…» y pulsar **Crear conexión**.
+3. Elegir la pestaña del sistema (*Mac y Linux* o *Windows (PowerShell)*; se abre sola la del equipo) y pulsar **Copiar** en el comando.
 4. Abrir la terminal (Mac: *Terminal*; Windows: *PowerShell*; Linux: *Terminal*), pegar el comando y pulsar Intro.
-5. Abrir una sesión nueva de Claude Code y escribir `/mcp`: el sitio debe aparecer conectado y con 9 herramientas.
+5. Cuando el comando la pida, copiar la **contraseña de aplicación** de la página con su botón **Copiar** y pegarla en la terminal (no se ve mientras se pega). No pegarla nunca en un chat, tampoco en el de Claude.
+6. Abrir una sesión nueva de Claude Code y escribir `/mcp`: el sitio debe aparecer conectado y con 9 herramientas.
 
 La página explica estos mismos pasos en pantalla.
 
 Qué hace la página por dentro:
 
 - **Contraseña de aplicación:** crea una para el usuario conectado, con el nombre «Claude Code · fecha» y el identificador de aplicación del plugin (`ConnectPage::APP_ID`).
-- **Comando de una línea:** `claude mcp add --transport http --scope user "<nombre>" "<endpoint>" --header "Authorization: Basic <credencial>"`. Solo usa comillas dobles y caracteres de base64, así que funciona igual en bash, zsh, PowerShell y el Símbolo del sistema.
-- **Se muestra una sola vez:** si se pierde, se crea otra conexión.
-- **Nombre de la conexión:** `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`). Si ya existía, la terminal dice que ya existe; la página indica el `claude mcp remove` que hay que pegar antes.
+- **Contraseña aparte:** se muestra en su propio recuadro, con su botón «Copiar» y el aviso de no pegarla en ningún chat. Los comandos no la llevan, así que se pueden reenviar sin riesgo y no queda en el historial de la terminal.
+- **Un comando por sistema, en pestañas:** *Mac y Linux* (bloque `bash <<'EOF' … EOF`, válido también en zsh) y *Windows (PowerShell)* (bloque `& { … }`, PowerShell 5.1 y 7; no vale el Símbolo del sistema). Al cargar se abre la pestaña del sistema del navegador. Llevan ya puestos el sitio, el endpoint, el nombre de la conexión y el usuario. Al ejecutarse piden la contraseña sin mostrarla, la comprueban contra el MCP (contraseña incorrecta, sitio sin plugin o sin conexión dan un mensaje claro y no guardan nada), preguntan antes de sustituir una conexión que ya exista y guardan la conexión con `claude mcp add --transport http --scope user`. Hacen lo mismo que los bloques de «Alternativa: desde la terminal», sin preguntar el sitio ni el usuario.
+- **Se muestra una sola vez:** si se pierde la contraseña, se crea otra conexión.
+- **Nombre de la conexión:** `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`).
 - **Lista de conexiones:** muestra las del usuario con su último uso, y enlaza al perfil para revocarlas (*Contraseñas de aplicación*).
 - **Si no están disponibles las contraseñas de aplicación** (sitio sin HTTPS o desactivadas por un plugin de seguridad), la página lo explica y no ofrece el botón.
-- **Usuario de la conexión:** la conexión siempre es del usuario con el que se ha entrado en WordPress. La página lo indica (nombre y usuario) junto al botón y al crearla, porque Claude actuará en su nombre. Si no es el correcto, hay que cerrar sesión y entrar con el que toca.
-- **Administradores:** si el usuario conectado es administrador, la página recomienda usar un usuario propio para Claude.
+- **Usuario de la conexión:** la conexión siempre es del usuario con el que se ha entrado en WordPress. La página lo muestra destacado (nombre, usuario y rol) antes de pulsar y al crearla, porque Claude actuará en su nombre, y pide marcar la casilla «Sí, crear la conexión para *usuario* (*rol*)»; sin marcarla no se crea nada. Si no es el correcto, hay que cerrar sesión y entrar con el que toca.
+- **Roles amplios:** si el usuario puede gestionar entradas de otros (`edit_others_posts`: Editor, Administrador o un rol personalizado parecido), la página lo advierte y recomienda un usuario propio para Claude con rol Autor.
+- **Caracteres raros:** si el nombre de usuario o la dirección tienen caracteres que el comando no admite (fuera de letras, números, espacio, `_ . @ -` en el usuario), la página no crea la contraseña y remite a los bloques de la terminal.
 - **Quién la ve:** está en *Herramientas* para cualquier usuario con `edit_posts`, que es lo mínimo que necesitan las herramientas.
 
-Contrapartida de seguridad: el comando lleva la credencial, así que queda en el historial de la terminal y en `~/.claude.json`. Es una contraseña de aplicación revocable, solo vale para ese usuario y no da acceso al escritorio. Si se sospecha que se ha visto, se revoca en el perfil y se crea otra.
+Contrapartida de seguridad: la credencial ya no queda en el historial de la terminal, pero sí en `~/.claude.json`. Es una contraseña de aplicación revocable, solo vale para ese usuario y no da acceso al escritorio. Si se sospecha que se ha visto, se revoca en el perfil y se crea otra.
 
 ### Alternativa: desde la terminal
 
@@ -238,7 +243,7 @@ Abrir **PowerShell** (no «Símbolo del sistema»), pegar el bloque entero y pul
   $user = ("" + (Read-Host "3/4 Usuario de WordPress")).Trim()
   if (-not $user) { Fallo "No has escrito el usuario."; return }
   $sec = Read-Host "4/4 Contraseña de aplicación (no se verá mientras escribes o pegas)" -AsSecureString
-  $pass = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
+  $pass = (New-Object Net.NetworkCredential('', $sec)).Password
   if (-not $pass) { Fallo "No has escrito la contraseña de aplicación."; return }
   $auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($user + ':' + $pass))
   $headers = @{ Authorization = "Basic $auth" }
@@ -311,7 +316,7 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 - **Otras conexiones al mismo sitio:** el límite de «no tocar entradas de otros» solo vale para este plugin. Si el mismo Claude Code tiene también otra conexión con más permisos (por ejemplo, Novamira o un conector de claude.ai), podría publicar o borrar por esa vía. Para que el límite sea real, quien use esta conexión no debe tener otras al mismo sitio.
 - **Publicar sin revisión:** con un Autor o superior, Claude puede publicar y modificar en directo sus entradas sin que nadie las revise. Si una persona debe revisar antes de publicar, conectar con un Colaborador.
 - **Etiquetas:** `tags` crea las que no existen, si el usuario puede asignar etiquetas.
-- **Credencial en el equipo:** queda en `~/.claude.json` y en el historial de la terminal. Es revocable y solo vale para la API de ese usuario.
+- **Credencial en el equipo:** queda en `~/.claude.json` (no en el historial de la terminal: tanto la página como los bloques la piden sin mostrarla). Es revocable y solo vale para la API de ese usuario.
 - **Log de WordPress:** si el sitio tiene `WP_DEBUG_LOG` activo, comprobar que `wp-content/debug.log` no se puede descargar desde internet. En `example.com` sí se podía; es un problema del sitio, no del plugin.
 - **Aviso de deprecación:** el adapter MCP incluido deja un aviso en el log en cada petición. No afecta al funcionamiento.
 
@@ -391,13 +396,15 @@ Los errores de las herramientas llegan dentro de `result`, con `isError: true` y
 Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 
 - `tools/list` devuelve exactamente las nueve herramientas de «Qué puede hacer el agente».
-- `list-categories` devuelve IDs utilizables; `get-current-user` confirma el usuario y rol antes de las pruebas; `get-template-status` no devuelve contenido de Elementor.
+- `list-categories` devuelve IDs utilizables; `get-current-user` confirma el usuario y rol antes de las pruebas; `get-template-status` no devuelve contenido de Elementor y detecta una plantilla de Archivo con `include/archive` o con condiciones de categoría (`exists: true`), y lista en `templates` las que no cubren el blog.
+- `create-post` y `update-post` responden sin `content` y con `content_hash` igual al MD5 del contenido enviado; con `return_content: true`, con el contenido.
 - Crear un borrador con `slug` y, si Yoast está activo, sus tres campos SEO; `get-post` devuelve los valores guardados.
 - `upload-media` acepta una imagen válida menor de 2 MB, permite usar su ID como `featured_image` y rechaza un archivo falso con extensión `.jpg`, un archivo mayor del límite y una imagen de otro usuario.
 - Crear un borrador, leerlo, editar su título y enviarlo a la papelera funciona; desde el escritorio se puede restaurar.
 - Programar con `scheduled_date` a 10 minutos deja la entrada en `future`, y se publica sola a esa hora. El cron de WordPress solo se ejecuta cuando alguien visita el sitio, así que puede tardar algo más.
 - Con un Autor, `status: publish` publica una entrada propia (también una programada, con la fecha actual) y `status: draft` la despublica.
 - Fallan como deben: `status: publish` con un Colaborador, `status: trash`, el ID de una página, una fecha pasada, un campo desconocido (`post_type`), un usuario Suscriptor, `update-post` y `trash-post` con una entrada de otro usuario (también con un Editor). Con un Autor, `trash-post` de una entrada propia publicada funciona y la retira del sitio.
+- Página de conexión: sin marcar la casilla no crea nada; con un Editor o Administrador muestra el aviso; los comandos no contienen la contraseña. El bloque de Mac y Linux, sin `</dev/tty` y con las respuestas por tubería, falla con un mensaje claro y sin guardar nada con la contraseña vacía o incorrecta, un sitio sin plugin o sin conexión y sin `claude`, y pregunta antes de sustituir una conexión existente.
 - Funciona junto a otros plugins que usan el adapter MCP (Novamira).
 
 ### Problemas habituales
@@ -427,7 +434,7 @@ El estado del proyecto, los pendientes, las decisiones y el historial de pruebas
 Código propio en `includes/` (PSR-4 `WpConnectMcp\`):
 
 - `Plugin.php`: registra la categoría, las abilities, el servidor MCP y, en el escritorio, la página de conexión.
-- `Admin/ConnectPage.php`: página *Herramientas → Conectar con Claude* (crea la contraseña de aplicación y muestra el comando).
+- `Admin/ConnectPage.php`: página *Herramientas → Conectar con Claude* (crea la contraseña de aplicación, la muestra aparte y da los bloques para la terminal de cada sistema).
 - `Abilities/`: una clase por ability (`NAME`, `register()`, `execute()`).
 - `Support/PostInput.php`: saneado y reglas de estado y programación.
 - `Support/PostExtras.php`: validación y escritura de Yoast e imagen destacada.

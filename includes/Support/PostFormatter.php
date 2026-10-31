@@ -44,6 +44,29 @@ final class PostFormatter
     }
 
     /**
+     * Respuesta de create-post y update-post: sin el contenido (salvo que se pida), con un resumen
+     * para comprobar que ha llegado entero sin volver a enviarlo.
+     *
+     * @return array<string, mixed>
+     */
+    public static function saved(WP_Post $post, bool $withContent = false): array
+    {
+        $data = self::full($post);
+        $content = $post->post_content;
+
+        if (!$withContent) {
+            unset($data['content']);
+        }
+
+        return $data + [
+            'content_length' => function_exists('mb_strlen') ? mb_strlen($content) : strlen($content),
+            'content_hash' => md5($content),
+            'headings' => (int) preg_match_all('/<h[1-6][\s>]/i', $content),
+            'links' => (int) preg_match_all('/<a\s[^>]*href=/i', $content),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function summarySchema(): array
@@ -83,6 +106,25 @@ final class PostFormatter
             'featured_image' => ['type' => ['integer', 'null']],
         ];
         $schema['required'][] = 'content';
+
+        return $schema;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function savedSchema(): array
+    {
+        $schema = self::fullSchema();
+        $schema['required'] = array_values(array_diff($schema['required'], ['content']));
+        $schema['properties']['content']['description'] = 'Solo con return_content: true.';
+        $schema['properties'] += [
+            'content_length' => ['type' => 'integer', 'description' => 'Caracteres del contenido guardado.'],
+            'content_hash' => ['type' => 'string', 'description' => 'MD5 del contenido guardado: si coincide con el del enviado, ha llegado entero.'],
+            'headings' => ['type' => 'integer', 'description' => 'Número de encabezados (h1 a h6).'],
+            'links' => ['type' => 'integer', 'description' => 'Número de enlaces.'],
+        ];
+        $schema['required'] = array_merge($schema['required'], ['content_length', 'content_hash', 'headings', 'links']);
 
         return $schema;
     }

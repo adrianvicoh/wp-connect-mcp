@@ -14,6 +14,7 @@
 - No usar clases de `vendor/` antes de `plugins_loaded` (autoloader de Jetpack).
 - Alcance deliberadamente limitado: solo entradas (`post`), sin borrar definitivamente. Modificar, publicar y enviar a la papelera, solo entradas propias (`PostAccess::canEditOwn()` y `canDeleteOwn()`), también si están publicadas; publicar y programar, solo si el usuario puede publicar. Cualquier ability nueva debe añadirse a `Plugin::ABILITIES`, comprobar capacidades en `permission_callback` (las generales, como `edit_posts`, antes de cargar nada, para no revelar qué existe) y declarar `input_schema` con `additionalProperties: false` y `output_schema`.
 - Las reglas de estado y programación viven en `Support/PostInput.php`; no duplicarlas en las abilities.
+- Las abilities que escriben (`create-post`, `update-post`) responden con `PostFormatter::saved()`: sin el contenido salvo `return_content: true`, para no gastar contexto del agente. Solo `get-post` devuelve el contenido completo.
 - Despliegue en el sitio de pruebas: subir solo los ficheros cambiados a `wp-content/plugins/wp-connect-mcp/` (con `vendor/` si cambia). No hay paso de compilación.
 - Zip de cada versión, para instalar desde *Plugins → Añadir nuevo → Subir plugin*: tras el commit de la versión, desde la raíz del repositorio y con el árbol limpio, generar `~/Descargas/wp-connect-mcp-<versión>.zip` (la versión sale de la cabecera `Version:` de `wp-connect-mcp.php`). Lleva solo `wp-connect-mcp.php`, `includes/` y `vendor/`, dentro de la carpeta `wp-connect-mcp/` (sin versión, para que WordPress lo instale siempre en la misma carpeta):
 
@@ -25,12 +26,14 @@
 - En comandos de prueba y documentación no depender de herramientas que haya que instalar (`jq` y similares): usar solo `curl` y `php -r` para leer el JSON.
 - La forma principal de conectar Claude Code es la página **Herramientas → Conectar con Claude** (`includes/Admin/ConnectPage.php`). Al tocarla:
   - las instrucciones de la página y las del README («Conectar Claude Code desde el escritorio») deben decir lo mismo;
-  - el comando generado debe seguir siendo **una sola línea** válida en bash, zsh, PowerShell y cmd: solo comillas dobles, sin `$`, comillas simples, acentos graves ni `&`;
-  - la contraseña se muestra una sola vez y no se guarda;
-  - la página muestra siempre con qué usuario se crea la conexión (antes de pulsar y al crearla): Claude actúa en su nombre;
+  - **los comandos no llevan nunca la contraseña.** La página da dos bloques, en pestañas: Mac y Linux (`UNIX_BLOCK`) y Windows PowerShell (`WINDOWS_BLOCK`), con el sitio, el endpoint, el nombre de la conexión y el usuario ya puestos. Piden la contraseña al ejecutarse, sin mostrarla, y la comprueban antes de guardar nada. Siguen las mismas reglas que los bloques del README (ver abajo) y hacen lo mismo que ellos, sin preguntar el sitio ni el usuario: si se cambia uno de los cuatro, revisar los otros;
+  - los valores que se insertan en los bloques solo pueden llevar caracteres que no interpreten bash ni PowerShell entre comillas dobles (`createConnection()` lo comprueba antes de crear la contraseña);
+  - la contraseña se muestra aparte, una sola vez, con su botón «Copiar» y el aviso de no pegarla en ningún chat, y no se guarda;
+  - la página muestra siempre con qué usuario y rol se crea la conexión (antes de pulsar y al crearla): Claude actúa en su nombre. Exige marcar la casilla de confirmación (comprobada también en el servidor) y avisa si el usuario tiene `edit_others_posts`;
   - todo texto que se imprima se escapa (`esc_html`, `esc_textarea`, `esc_url`);
   - el formulario lleva nonce;
-  - si se cambia el formato del nombre de la conexión (`wp-connect-mcp-<dominio>`), cambiarlo también en los bloques de terminal.
+  - si se cambia el formato del nombre de la conexión (`wp-connect-mcp-<dominio>`), cambiarlo también en los bloques de terminal del README;
+  - tras tocar los bloques, probar sus caminos de error como los del README: extraer de la página generada el cuerpo del bloque de Mac y Linux (sin la primera y la última línea), quitar `</dev/tty` y pasar las respuestas por tubería, con un servidor local (`php -S`) y un `claude` simulado.
 - La alternativa son los **bloques para copiar y pegar** de la sección «Alternativa: desde la terminal» del README: uno para Linux y macOS, otro para Windows (PowerShell). **No crear ficheros ejecutables para usuarios finales.** Los usan personas no técnicas:
   - pedir siempre los datos de forma interactiva y confirmar el sitio (nombre y dirección) antes de seguir;
   - mensajes en español llano, que digan qué hacer;

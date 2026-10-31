@@ -21,11 +21,17 @@ final class CreatePost
             'category' => Plugin::CATEGORY,
             'input_schema' => [
                 'type' => 'object',
-                'properties' => PostInput::schemaProperties(),
+                'properties' => PostInput::schemaProperties() + [
+                    'return_content' => [
+                        'type' => 'boolean',
+                        'default' => false,
+                        'description' => 'Devolver también el contenido guardado. Por defecto solo se devuelve un resumen (longitud, MD5, encabezados y enlaces).',
+                    ],
+                ],
                 'required' => ['title'],
                 'additionalProperties' => false,
             ],
-            'output_schema' => PostFormatter::fullSchema(),
+            'output_schema' => PostFormatter::savedSchema(),
             'execute_callback' => [self::class, 'execute'],
             'permission_callback' => [self::class, 'permission'],
             'meta' => [
@@ -68,6 +74,6 @@ final class CreatePost
 
         PostExtras::apply($id, $extras);
 
-        return PostFormatter::full(get_post($id));
+        return PostFormatter::saved(get_post($id), !empty($input['return_content']));
     }
 }
