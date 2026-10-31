@@ -6,6 +6,7 @@ use WP_Application_Passwords;
 use WP_Error;
 use WP_User;
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Grants;
 
 defined('ABSPATH') || exit;
 
@@ -45,12 +46,13 @@ read -r -s -p "Pega la contraseña de aplicación que muestra la página (no se 
 WP_APP_PASS=$(printf '%s' "$WP_APP_PASS" | tr -d '[:space:]')
 [ -n "$WP_APP_PASS" ] || fallo "No has pegado la contraseña de aplicación." "Cópiala de la página con su botón «Copiar» y vuelve a pegar este bloque."
 echo "Comprobando la contraseña…"
-RESP=$(curl -sS --max-time 20 -w '\n%{http_code}' -u "$WP_USER:$WP_APP_PASS" "$MCP" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"conectar-claude","version":"1.0"}}}' 2>/dev/null)
+RESP=$(printf 'user = "%s:%s"\n' "$WP_USER" "$WP_APP_PASS" | curl -sS --max-time 20 -K - -w '\n%{http_code}' "$MCP" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"conectar-claude","version":"1.0"}}}' 2>/dev/null)
 CODE=${RESP##*$'\n'}
 case "$CODE" in
   200) ;;
   000) fallo "No se puede conectar con $SITE." "Revisa que tengas internet y vuelve a pegar este bloque." ;;
   401) fallo "La contraseña de aplicación no es correcta." "Cópiala otra vez de la página con el botón «Copiar». Si ya no se ve, crea otra conexión." ;;
+  403) fallo "Tu usuario no tiene acceso a Claude en este sitio." "Pide a un administrador que te lo dé en Usuarios → Acceso de Claude y crea otra conexión." ;;
   404) fallo "El sitio no tiene el plugin WP Connect MCP activo." "Pide a soporte técnico que lo active." ;;
   *)   fallo "El sitio ha respondido con un error ($CODE)." "Pide ayuda a soporte técnico y diles este número." ;;
 esac
@@ -98,6 +100,7 @@ BASH;
     $code = 0; if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
     if ($code -eq 0) { Fallo "No se puede conectar con $site." "Revisa que tengas internet y vuelve a pegar este bloque." }
     elseif ($code -eq 401) { Fallo "La contraseña de aplicación no es correcta." "Cópiala otra vez de la página con el botón «Copiar». Si ya no se ve, crea otra conexión." }
+    elseif ($code -eq 403) { Fallo "Tu usuario no tiene acceso a Claude en este sitio." "Pide a un administrador que te lo dé en Usuarios -> Acceso de Claude y crea otra conexión." }
     elseif ($code -eq 404) { Fallo "El sitio no tiene el plugin WP Connect MCP activo." "Pide a soporte técnico que lo active." }
     else { Fallo "El sitio ha respondido con un error ($code)." "Pide ayuda a soporte técnico y diles este número." }
     return
@@ -147,17 +150,24 @@ POWERSHELL;
         $user = wp_get_current_user();
         $result = null;
 
-        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['_wpnonce'])) {
+        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['_wpnonce']) && wp_is_application_passwords_available_for_user($user)) {
             check_admin_referer(self::ACTION);
             $result = self::createConnection($user);
         }
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Conectar con Claude', 'wp-connect-mcp') . '</h1>';
-        echo '<p>' . esc_html__('Conecta Claude Code con este sitio para que pueda consultar categorías y plantillas, crear y editar entradas, completar Yoast, subir imágenes, programar, publicar y enviar a la papelera. Solo modifica, publica y borra contenido creado con tu usuario, y solo publica o sube archivos si tu rol lo permite.', 'wp-connect-mcp') . '</p>';
+        echo '<p>' . esc_html__('Conecta Claude Code con este sitio para que pueda consultar categorías y plantillas, crear y editar entradas, completar Yoast, subir imágenes, programar, publicar y enviar a la papelera. Solo modifica, publica y borra contenido creado con tu usuario, solo publica o sube archivos si tu rol lo permite y solo usa las herramientas que un administrador te haya dado.', 'wp-connect-mcp') . '</p>';
 
         if (!wp_is_application_passwords_available_for_user($user)) {
             self::renderUnavailable();
+            echo '</div>';
+            return;
+        }
+
+        if (!Grants::hasAny((int) $user->ID)) {
+            self::renderNoAccess();
+            self::renderConnections($user);
             echo '</div>';
             return;
         }
@@ -177,7 +187,7 @@ POWERSHELL;
     }
 
     /**
-     * @return array{server: string, password: string, unix: string, windows: string}|WP_Error
+     * @return array{server: string, revoked: int, password: string, unix: string, windows: string}|WP_Error
      */
     private static function createConnection(WP_User $user)
     {
@@ -185,12 +195,21 @@ POWERSHELL;
             return new WP_Error('wp_connect_mcp_not_confirmed', __('Marca la casilla para confirmar con qué usuario se crea la conexión.', 'wp-connect-mcp'));
         }
 
+        if (!Grants::hasAny((int) $user->ID)) {
+            return new WP_Error('wp_connect_mcp_no_access', __('Tu usuario no tiene acceso a Claude en este sitio. Pide a un administrador que te lo dé.', 'wp-connect-mcp'));
+        }
+
         $endpoint = self::endpoint();
 
-        // Estos valores van dentro de los comandos entre comillas dobles: solo caracteres que no interpreten bash ni PowerShell.
-        if (!preg_match('/^[A-Za-z0-9 _.@-]+$/', $user->user_login) || !preg_match('#^https?://[A-Za-z0-9._~:/?=&%+-]+$#', $endpoint)) {
+        // Estos valores van dentro de los comandos entre comillas dobles: solo caracteres que no interpreten bash, PowerShell
+        // ni cmd.exe (en Windows, claude suele ser un claude.cmd).
+        $site = home_url();
+        $url = '#^https?://[A-Za-z0-9._~:/?=+-]+$#';
+        if (!preg_match('/^[A-Za-z0-9 _.@-]+$/', $user->user_login) || !preg_match($url, $endpoint) || !preg_match($url, $site)) {
             return new WP_Error('wp_connect_mcp_unsafe_value', __('El nombre de usuario o la dirección del sitio tienen caracteres que el comando no admite. Usa los bloques de la terminal del README o pide ayuda a soporte técnico.', 'wp-connect-mcp'));
         }
+
+        $revoked = empty($_POST['wp_connect_mcp_revoke_previous']) ? 0 : Grants::revokeConnections((int) $user->ID, (int) $user->ID);
 
         $created = WP_Application_Passwords::create_new_application_password($user->ID, [
             'name' => sprintf('Claude Code · %s', wp_date('d/m/Y H:i:s')),
@@ -202,7 +221,7 @@ POWERSHELL;
         }
 
         $values = [
-            '__SITE__' => home_url(),
+            '__SITE__' => $site,
             '__MCP__' => $endpoint,
             '__NAME__' => self::serverName(),
             '__USER__' => $user->user_login,
@@ -210,6 +229,7 @@ POWERSHELL;
 
         return [
             'server' => $values['__NAME__'],
+            'revoked' => $revoked,
             'password' => WP_Application_Passwords::chunk_password($created[0]),
             'unix' => strtr(self::UNIX_BLOCK, $values),
             'windows' => strtr(self::WINDOWS_BLOCK, $values),
@@ -241,6 +261,10 @@ POWERSHELL;
                 self::roleLabel($user)
             ))
         );
+        printf(
+            '<p><label><input type="checkbox" name="wp_connect_mcp_revoke_previous" value="1" checked> %s</label></p>',
+            esc_html__('Revocar mis conexiones anteriores con Claude (recomendado: las contraseñas antiguas o perdidas dejan de valer). Desmárcalo solo si usas Claude en otro equipo.', 'wp-connect-mcp')
+        );
         submit_button(esc_html__('Crear conexión', 'wp-connect-mcp'), 'primary', 'submit', false);
         echo '</form>';
         echo '</div>';
@@ -259,6 +283,11 @@ POWERSHELL;
             esc_html($user->user_login),
             esc_html(self::roleLabel($user))
         );
+        printf(
+            '<p>%s %s</p>',
+            esc_html__('Herramientas que te ha dado un administrador:', 'wp-connect-mcp'),
+            esc_html(self::packagesLabel($user))
+        );
         echo '<p>' . esc_html__('Si no es el usuario que quieres usar, cierra la sesión y entra con el correcto.', 'wp-connect-mcp') . '</p>';
 
         if (user_can($user, 'edit_others_posts')) {
@@ -269,7 +298,7 @@ POWERSHELL;
     }
 
     /**
-     * @param array{server: string, password: string, unix: string, windows: string} $result
+     * @param array{server: string, revoked: int, password: string, unix: string, windows: string} $result
      */
     private static function renderCommand(array $result, WP_User $user): void
     {
@@ -281,6 +310,14 @@ POWERSHELL;
             esc_html(self::roleLabel($user)),
             esc_html__('Sigue los pasos ahora: por seguridad, la contraseña no se volverá a mostrar.', 'wp-connect-mcp')
         );
+
+        if ($result['revoked']) {
+            printf(
+                '<div class="notice notice-info"><p>%s</p></div>',
+                /* translators: %d: número de conexiones revocadas */
+                esc_html(sprintf(__('Se han revocado %d conexiones anteriores: en otros equipos habrá que volver a conectar.', 'wp-connect-mcp'), $result['revoked']))
+            );
+        }
 
         echo '<div class="card wp-connect-mcp-card">';
         echo '<h2>' . esc_html__('1. Copia el comando de tu sistema', 'wp-connect-mcp') . '</h2>';
@@ -305,7 +342,7 @@ POWERSHELL;
             esc_html__('Copiar', 'wp-connect-mcp')
         );
         echo '<p><strong>' . esc_html__('No la pegues en ningún chat, tampoco en el de Claude: solo en la terminal, cuando el comando la pida.', 'wp-connect-mcp') . '</strong> ';
-        echo esc_html__('No se ve mientras la pegas: es normal. Se muestra una sola vez; si la pierdes, crea otra conexión. Si crees que alguien la ha visto, revoca la conexión abajo, en tu perfil.', 'wp-connect-mcp') . '</p>';
+        echo esc_html__('Pégala solo cuando la terminal muestre la pregunta; si el comando se detiene antes con un error, no la pegues. No se ve mientras la pegas: es normal. Se muestra una sola vez; si la pierdes, crea otra conexión. Si crees que alguien la ha visto, revoca la conexión abajo, en tu perfil.', 'wp-connect-mcp') . '</p>';
 
         echo '<h2>' . esc_html__('4. Comprueba la conexión', 'wp-connect-mcp') . '</h2>';
         echo '<p>' . esc_html__('Abre una sesión nueva de Claude Code y escribe /mcp: debe aparecer como conectado:', 'wp-connect-mcp') . ' <code>' . esc_html($result['server']) . '</code></p>';
@@ -364,6 +401,24 @@ POWERSHELL;
             esc_url(admin_url('profile.php#application-passwords-section')),
             esc_html__('Revocar conexiones en tu perfil (Contraseñas de aplicación)', 'wp-connect-mcp')
         );
+    }
+
+    private static function renderNoAccess(): void
+    {
+        echo '<div class="notice notice-warning"><p>';
+        echo esc_html__('Tu usuario no tiene acceso a Claude en este sitio, así que no puedes crear la conexión ni usar las que ya tengas. Pide a un administrador que te dé acceso en Usuarios → Acceso de Claude.', 'wp-connect-mcp');
+        echo '</p></div>';
+
+        if (current_user_can('promote_users')) {
+            printf('<p><a class="button" href="%s">%s</a></p>', esc_url(GrantsPage::url()), esc_html__('Ir a Acceso de Claude', 'wp-connect-mcp'));
+        }
+    }
+
+    private static function packagesLabel(WP_User $user): string
+    {
+        return implode(', ', array_map(static function (string $package): string {
+            return Grants::PACKAGES[$package]['label'];
+        }, Grants::packagesOf((int) $user->ID)));
     }
 
     private static function renderUnavailable(): void

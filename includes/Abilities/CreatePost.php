@@ -3,6 +3,7 @@
 namespace WpConnectMcp\Abilities;
 
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Guard;
 use WpConnectMcp\Support\PostFormatter;
 use WpConnectMcp\Support\PostInput;
 use WpConnectMcp\Support\PostExtras;
@@ -15,7 +16,7 @@ final class CreatePost
 
     public static function register(): void
     {
-        wp_register_ability(self::NAME, [
+        wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Crear entrada',
             'description' => 'Crea una entrada (post) del usuario como borrador, pendiente de revisión, programada o publicada (si el usuario puede publicar).',
             'category' => Plugin::CATEGORY,
@@ -41,7 +42,7 @@ final class CreatePost
                     'idempotent' => false,
                 ],
             ],
-        ]);
+        ]));
     }
 
     public static function permission(): bool

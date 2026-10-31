@@ -5,6 +5,7 @@ namespace WpConnectMcp\Abilities;
 use WP_Error;
 use WP_Post;
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Guard;
 use WpConnectMcp\Support\PostAccess;
 use WpConnectMcp\Support\PostFormatter;
 
@@ -16,7 +17,7 @@ final class TrashPost
 
     public static function register(): void
     {
-        wp_register_ability(self::NAME, [
+        wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Enviar entrada a la papelera',
             'description' => 'Borra una entrada (post) creada por este usuario enviándola a la papelera, de donde una persona puede restaurarla. Si estaba publicada, deja de verse en el sitio.',
             'category' => Plugin::CATEGORY,
@@ -38,7 +39,7 @@ final class TrashPost
                     'idempotent' => false,
                 ],
             ],
-        ]);
+        ]));
     }
 
     /**

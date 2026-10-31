@@ -4,6 +4,7 @@ namespace WpConnectMcp\Abilities;
 
 use WP_Query;
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Guard;
 use WpConnectMcp\Support\PostFormatter;
 
 defined('ABSPATH') || exit;
@@ -17,7 +18,7 @@ final class ListPosts
 
     public static function register(): void
     {
-        wp_register_ability(self::NAME, [
+        wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Listar entradas',
             'description' => 'Lista entradas (posts) que el usuario puede editar, ordenadas por última modificación. Admite búsqueda, filtro por estado y paginación.',
             'category' => Plugin::CATEGORY,
@@ -71,7 +72,7 @@ final class ListPosts
                     'idempotent' => true,
                 ],
             ],
-        ]);
+        ]));
     }
 
     public static function permission(): bool

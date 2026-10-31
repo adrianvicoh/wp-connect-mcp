@@ -4,6 +4,7 @@ namespace WpConnectMcp\Abilities;
 
 use WP_Error;
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Guard;
 
 defined('ABSPATH') || exit;
 
@@ -14,7 +15,7 @@ final class ListCategories
 
     public static function register(): void
     {
-        wp_register_ability(self::NAME, [
+        wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Listar categorías',
             'description' => 'Lista las categorías de entradas con sus IDs para poder asignarlas al crear o editar.',
             'category' => Plugin::CATEGORY,
@@ -46,7 +47,7 @@ final class ListCategories
             'execute_callback' => [self::class, 'execute'],
             'permission_callback' => [self::class, 'permission'],
             'meta' => ['annotations' => ['readonly' => true, 'destructive' => false, 'idempotent' => true]],
-        ]);
+        ]));
     }
 
     public static function permission(): bool

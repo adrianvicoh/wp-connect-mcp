@@ -3,6 +3,8 @@
 namespace WpConnectMcp\Abilities;
 
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Grants;
+use WpConnectMcp\Security\Guard;
 
 defined('ABSPATH') || exit;
 
@@ -12,9 +14,9 @@ final class GetCurrentUser
 
     public static function register(): void
     {
-        wp_register_ability(self::NAME, [
+        wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Consultar usuario conectado',
-            'description' => 'Devuelve el usuario y las capacidades relevantes de la conexión, sin correo ni otros datos personales.',
+            'description' => 'Devuelve el usuario, las capacidades relevantes y los paquetes de herramientas otorgados a la conexión, sin correo ni otros datos personales.',
             'category' => Plugin::CATEGORY,
             'input_schema' => ['type' => 'object', 'default' => [], 'properties' => [], 'additionalProperties' => false],
             'output_schema' => [
@@ -33,13 +35,14 @@ final class GetCurrentUser
                         ],
                         'required' => ['publish_posts', 'edit_others_posts', 'upload_files'],
                     ],
+                    'packages' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Paquetes de herramientas otorgados por un administrador.'],
                 ],
-                'required' => ['id', 'login', 'display_name', 'roles', 'can'],
+                'required' => ['id', 'login', 'display_name', 'roles', 'can', 'packages'],
             ],
             'execute_callback' => [self::class, 'execute'],
             'permission_callback' => [self::class, 'permission'],
             'meta' => ['annotations' => ['readonly' => true, 'destructive' => false, 'idempotent' => true]],
-        ]);
+        ]));
     }
 
     public static function permission(): bool
@@ -64,6 +67,7 @@ final class GetCurrentUser
                 'edit_others_posts' => current_user_can('edit_others_posts'),
                 'upload_files' => current_user_can('upload_files'),
             ],
+            'packages' => Grants::packagesOf((int) $user->ID),
         ];
     }
 }

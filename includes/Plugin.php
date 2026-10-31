@@ -8,6 +8,7 @@ use WP\MCP\Infrastructure\Observability\NullMcpObservabilityHandler;
 use WP\MCP\Transport\HttpTransport;
 use WpConnectMcp\Abilities\CreatePost;
 use WpConnectMcp\Admin\ConnectPage;
+use WpConnectMcp\Admin\GrantsPage;
 use WpConnectMcp\Abilities\GetPost;
 use WpConnectMcp\Abilities\GetCurrentUser;
 use WpConnectMcp\Abilities\GetTemplateStatus;
@@ -16,6 +17,9 @@ use WpConnectMcp\Abilities\ListPosts;
 use WpConnectMcp\Abilities\TrashPost;
 use WpConnectMcp\Abilities\UpdatePost;
 use WpConnectMcp\Abilities\UploadMedia;
+use WpConnectMcp\Security\ApplicationPasswordScope;
+use WpConnectMcp\Security\Grants;
+use WpConnectMcp\Security\Guard;
 
 defined('ABSPATH') || exit;
 
@@ -27,6 +31,8 @@ final class Plugin
     public const ROUTE = 'mcp';
 
     /**
+     * Cada ability debe estar también en un paquete de Security\Grants::PACKAGES.
+     *
      * @var array<class-string>
      */
     private const ABILITIES = [
@@ -51,9 +57,14 @@ final class Plugin
         add_action('wp_abilities_api_categories_init', [self::class, 'registerCategory']);
         add_action('wp_abilities_api_init', [self::class, 'registerAbilities']);
         add_action('mcp_adapter_init', [self::class, 'registerServer']);
+        add_filter('mcp_adapter_tools_list', [Guard::class, 'filterTools'], 10, 2);
+        add_filter('mcp_adapter_create_default_server', [self::class, 'defaultServer'], 5);
+        add_action('init', [Grants::class, 'migrate']);
+        ApplicationPasswordScope::register();
 
         if (is_admin()) {
             ConnectPage::register();
+            GrantsPage::register();
         }
 
         McpAdapter::instance();
@@ -88,12 +99,24 @@ final class Plugin
             NullMcpObservabilityHandler::class,
             array_map(static function (string $ability): string {
                 return $ability::NAME;
-            }, self::ABILITIES)
+            }, self::ABILITIES),
+            [],
+            [],
+            [Guard::class, 'canConnect']
         );
 
         if (is_wp_error($result)) {
             error_log('[wp-connect-mcp] ' . $result->get_error_message());
         }
+    }
+
+    /**
+     * El adapter crea por defecto /wp-json/mcp/mcp-adapter-default-server, con execute-ability y acceso con
+     * solo `read`. Se desactiva salvo que el sitio lo necesite (Novamira): filtro wp_connect_mcp_keep_default_server.
+     */
+    public static function defaultServer(bool $create): bool
+    {
+        return $create && (bool) apply_filters('wp_connect_mcp_keep_default_server', false);
     }
 
     public static function renderMissingDependencyNotice(): void

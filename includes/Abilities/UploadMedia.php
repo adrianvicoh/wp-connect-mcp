@@ -4,6 +4,7 @@ namespace WpConnectMcp\Abilities;
 
 use WP_Error;
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Guard;
 use WpConnectMcp\Support\PostAccess;
 
 defined('ABSPATH') || exit;
@@ -12,6 +13,7 @@ final class UploadMedia
 {
     public const NAME = 'wp-connect-mcp/upload-media';
     private const DEFAULT_MAX_BYTES = 2097152;
+    private const DEFAULT_MAX_PIXELS = 40000000;
     private const ALLOWED_MIMES = [
         'jpg|jpeg|jpe' => 'image/jpeg',
         'png' => 'image/png',
@@ -21,7 +23,7 @@ final class UploadMedia
 
     public static function register(): void
     {
-        wp_register_ability(self::NAME, [
+        wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Subir imagen',
             'description' => 'Sube una imagen JPEG, PNG, WebP o GIF codificada en base64 (máximo 2 MB por defecto). No descarga URLs remotas.',
             'category' => Plugin::CATEGORY,
@@ -52,7 +54,7 @@ final class UploadMedia
             'execute_callback' => [self::class, 'execute'],
             'permission_callback' => [self::class, 'permission'],
             'meta' => ['annotations' => ['readonly' => false, 'destructive' => false, 'idempotent' => false]],
-        ]);
+        ]));
     }
 
     /**
@@ -81,17 +83,39 @@ final class UploadMedia
             return new WP_Error('wp_connect_mcp_invalid_filename', 'filename no es válido.', ['status' => 400]);
         }
 
+        $maxBytes = (int) apply_filters('wp_connect_mcp_max_upload_bytes', self::DEFAULT_MAX_BYTES);
+        $tooLarge = new WP_Error(
+            'wp_connect_mcp_file_too_large',
+            sprintf('La imagen supera el límite de %d bytes.', $maxBytes),
+            ['status' => 413]
+        );
+
+        // Antes de limpiar y decodificar, para no procesar entero un envío desmesurado.
+        if (strlen((string) $input['data']) > 2 * (int) ceil($maxBytes * 4 / 3) + 1024) {
+            return $tooLarge;
+        }
+
         $encoded = preg_replace('/\s+/', '', (string) $input['data']);
+        if (strlen($encoded) > (int) ceil($maxBytes * 4 / 3) + 4) {
+            return $tooLarge;
+        }
+
         $data = base64_decode($encoded, true);
         if (false === $data) {
             return new WP_Error('wp_connect_mcp_invalid_base64', 'data no contiene base64 válido.', ['status' => 400]);
         }
 
-        $maxBytes = (int) apply_filters('wp_connect_mcp_max_upload_bytes', self::DEFAULT_MAX_BYTES);
         if (strlen($data) > $maxBytes) {
+            return $tooLarge;
+        }
+
+        // Una imagen pequeña con dimensiones enormes dispara la memoria al generar los tamaños.
+        $size = @getimagesizefromstring($data);
+        $maxPixels = (int) apply_filters('wp_connect_mcp_max_upload_pixels', self::DEFAULT_MAX_PIXELS);
+        if (is_array($size) && $size[0] * $size[1] > $maxPixels) {
             return new WP_Error(
-                'wp_connect_mcp_file_too_large',
-                sprintf('La imagen supera el límite de %d bytes.', $maxBytes),
+                'wp_connect_mcp_image_too_big',
+                sprintf('La imagen mide %dx%d píxeles; el máximo es %d megapíxeles.', $size[0], $size[1], (int) ($maxPixels / 1000000)),
                 ['status' => 413]
             );
         }

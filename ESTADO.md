@@ -4,21 +4,46 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Situación actual
 
-- **Versión 0.2.2 (31/10/2026, commit y tag `v0.2.2` en local, sin push ni subir al sitio):** versión 0.2.2 con los cambios pedidos tras la prueba de marketing (`../pruebas-automatizacion/modificaciones-wp-connect-mcp.md`, que no se ha modificado). Cambios: `get-template-status` sin falsos negativos y con la lista `templates`; `create-post` y `update-post` responden sin el contenido (`return_content` para pedirlo); y la página de conexión con la contraseña aparte, un bloque por sistema en pestañas, el usuario y el rol destacados y una casilla de confirmación. Probada fuera de WordPress; falta subirla y probarla en `test.wwwarcelona.net`.
-- **0.2.1 instalada en `test.wwwarcelona.net` (30/10/2026):** la instaló marketing durante la prueba del plugin de Claude `post-create-wwwarcelona`, guiada paso a paso. Conexión `wp-connect-mcp-test-wwwarcelona-net` con el usuario `test` (ID 8, Autor; confirmado con `get-current-user` el 31/10). Con ella se subieron y programaron 10 entradas reales (2519–2528), que se publicarán solas del 03/11 al 07/12/2026.
+- **Versión 0.3.0 (31/10/2026, commit y tag `v0.3.0` en local, sin push ni subir al sitio):** seguridad, alternativa A de [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md), aplicada a petición de Adrián.
+  - La contraseña de la conexión solo vale para el MCP, y el MCP solo acepta contraseñas de la página.
+  - Paquetes *Leer*, *Escribir* y *Papelera* por usuario, en la nueva *Usuarios → Acceso de Claude*.
+  - Registro de uso, límite por hora y servidor MCP por defecto del adapter desactivado.
+  - Arreglos de la revisión de seguridad del mismo día.
+
+  Probada fuera de WordPress: simulación de 34 comprobaciones y bloques de terminal con servidor local. **Falta probarla en el sitio de pruebas; hasta entonces, no usar en producción.**
+- **Versión 0.2.2 (31/10/2026, commit y tag `v0.2.2` en local, sin push ni subir al sitio):** versión 0.2.2 con los cambios pedidos tras la prueba de marketing (`../pruebas-automatizacion/modificaciones-wp-connect-mcp.md`, que no se ha modificado). Cambios: `get-template-status` sin falsos negativos y con la lista `templates`; `create-post` y `update-post` responden sin el contenido (`return_content` para pedirlo); y la página de conexión con la contraseña aparte, un bloque por sistema en pestañas, el usuario y el rol destacados y una casilla de confirmación. Probada fuera de WordPress; falta subirla y probarla en el sitio de pruebas.
+- **0.2.1 instalada en el sitio de pruebas (30/10/2026):** la instaló marketing durante la prueba del plugin de Claude `post-create-wwwarcelona`, guiada paso a paso. Conexión `wp-connect-mcp-` + dominio de pruebas con el usuario `test` (ID 8, Autor; confirmado con `get-current-user` el 31/10). Con ella se subieron y programaron 10 entradas reales (2519–2528), que se publicarán solas del 03/11 al 07/12/2026.
 - **Desarrollo 29/10/2026 (terminado en local, sin subir):** versión 0.2.1 con los requisitos de `post-create-wwwarcelona/docs/requisitos-wp-connect-mcp.md`: nueve tools en total, con categorías, usuario conectado, estado de plantillas, slug, Yoast, subida de imágenes/imagen destacada y filtro por categoría. El repositorio `post-create-wwwarcelona` se usó solo como referencia y no se modificó.
 - **Versión:** 0.2.1 en `main`, con ZIP instalable generado y sin tag hasta probarla en el sitio. La 0.1.0 tiene el tag `v0.1.0` (commit `169509e`).
-- **Estado:** funcionando en `test.wwwarcelona.net`. Probados conexión, `tools/list`, crear, leer, editar, programar (con publicación automática confirmada), los rechazos principales, el usuario Suscriptor y una tarea real desde Claude Code con la conexión de la página.
+- **Estado:** funcionando en el sitio de pruebas. Probados conexión, `tools/list`, crear, leer, editar, programar (con publicación automática confirmada), los rechazos principales, el usuario Suscriptor y una tarea real desde Claude Code con la conexión de la página.
 - **Documentación:** README, AGENTS.md y CHANGELOG al día a 27/10/2026. Nuevo [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md): alternativas para usar IA en WordPress, seguridad y control de funciones por paquetes.
 - **Nuevo nombre (28/10/2026, sin subir):** el plugin pasa a llamarse **WP Connect MCP** (`wp-connect-mcp`), sin referencias a la marca: carpeta y fichero principal `wp-connect-mcp/wp-connect-mcp.php`, espacio de nombres `WpConnectMcp\`, endpoint `/wp-json/wp-connect-mcp/mcp`, herramientas `wp-connect-mcp-*` y conexión `wp-connect-mcp-<dominio>`. Rompe lo instalado: hay que instalarlo como plugin nuevo y volver a crear la conexión. Antes se llamaba «wwwarcelona WP Connect» (`wwwarcelona-wp-connect`): las filas de pruebas, decisiones e historial anteriores a este cambio conservan los nombres de entonces (ruta `/wwwarcelona/mcp`, herramientas `wwwarcelona-*`, conexión `wwwarcelona-<dominio>`).
 - **Publicar entradas propias (28/10/2026, sin subir):** `create-post` y `update-post` admiten `status: publish`, solo para entradas propias y si el usuario puede publicar (Autor o superior). Publicar una programada la publica ahora. Las propias publicadas se pueden despublicar (a borrador o pendiente). Cambia la decisión del 26/10 de que el agente no publica.
 - **Cambio provisional (28/10/2026, subido y probado en parte):** el agente puede corregir sus errores. `update-post` solo modifica entradas creadas por el usuario de la conexión, sea cual sea su rol, y la nueva `trash-post` envía a la papelera (recuperable) las propias en cualquier estado, también publicadas (cambio pedido el mismo día). Probado con un Autor el ciclo completo (crear, programar, editar, papelera y restaurar); faltan los rechazos y los demás roles.
 - **Hallazgo de seguridad:** la contraseña de aplicación de la conexión vale para toda la API REST (`wp/v2`), no solo para el MCP; un Autor podría publicar y borrar saltándose el plugin. No usar en producción hasta limitarla a la ruta (ver docs/ALTERNATIVAS.md, alternativa A).
-- **Siguiente paso:** revisar [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) con backend y sistemas, marketing y dirección, y decidir la alternativa antes de seguir con el código (v0.2). Mientras tanto, subir la nueva `ConnectPage.php` a `test.wwwarcelona.net` y revocar la conexión antigua del usuario ID 3. Claude Code ya está conectado con `test-mcp-sub` (ID 6), que ahora es Autor.
+- **Siguiente paso:** revisar [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) con backend y sistemas, marketing y dirección, y decidir la alternativa antes de seguir con el código (v0.2). Mientras tanto, subir la nueva `ConnectPage.php` al sitio de pruebas y revocar la conexión antigua del usuario ID 3. Claude Code ya está conectado con `test-mcp-sub` (ID 6), que ahora es Autor.
 
 ## Pendientes
 
-- [ ] Subir la 0.2.2 a `test.wwwarcelona.net` (ficheros cambiados: `wp-connect-mcp.php`, `includes/Admin/ConnectPage.php`, `includes/Abilities/GetTemplateStatus.php`, `CreatePost.php`, `UpdatePost.php` e `includes/Support/PostFormatter.php`) y probar:
+- [x] Commit de la 0.3.0, tag `v0.3.0` en local y zip `~/Descargas/wp-connect-mcp-0.3.0.zip`. Hecho el 31/10/2026, sin push.
+- [ ] Subir la 0.3.0 al sitio de pruebas: ficheros nuevos `includes/Security/` (cuatro) e `includes/Admin/GrantsPage.php`; cambiados `wp-connect-mcp.php`, `includes/Plugin.php`, `includes/Admin/ConnectPage.php` y las nueve `includes/Abilities/*.php`; `vendor/` no cambia. Después, probar:
+  - el usuario `test` (ID 8) recibe los tres paquetes por la migración y su conexión sigue funcionando;
+  - con su contraseña, `wp/v2/users/me` da 403 `wp_connect_mcp_password_scope` y el MCP funciona;
+  - una contraseña creada a mano da 403 en el MCP;
+  - solo *Leer*: `tools/list` con cinco herramientas, y `create-post` da `Permission denied`;
+  - quitar todos los paquetes revoca la conexión, y el registro lo muestra;
+  - `/wp-json/mcp/mcp-adapter-default-server` da 404;
+  - en la página, sin paquetes no hay botón, y la casilla «Revocar mis conexiones anteriores» funciona;
+  - `upload-media` con una imagen de más de 40 megapíxeles da error.
+- [ ] Antes de subir la 0.3.0 a un sitio con Novamira: decidir si se mantiene su servidor (`add_filter('wp_connect_mcp_keep_default_server', '__return_true');` en un mu-plugin). Si no, Novamira deja de funcionar en ese sitio.
+- [ ] **Revisión de seguridad del 31/10/2026, sin resolver:**
+  - **Datos reales en un repositorio público** (`adrianvicoh/wp-connect-mcp` es público, confirmado por Adrián el 31/10/2026). Quitado el dominio de pruebas de ESTADO.md el 31/10/2026. Quedan nombres e IDs de usuarios de prueba en ESTADO.md, y el dominio sigue en el historial de git. Decidir si se seudonimizan los usuarios y si se reescribe el historial (exige `push --force`). Mientras tanto, cerrar el `debug.log` público y revocar las contraseñas que no se usen.
+  - **Contraseña sin revocar:** revocar la de `test-mcp-1` (ver más abajo).
+  - **Credencial en los argumentos de `claude mcp add`:** puede quedar en registros de auditoría de procesos. Mirar si Claude Code admite variables en las cabeceras; si no, que sistemas lo valore (documentado en el README).
+  - **`tags` crea etiquetas nuevas:** con un Autor o Colaborador, más de lo que permite `wp/v2/tags`. Decidir si se exige `manage_categories` o se usan solo las existentes.
+  - **Caducidad de las contraseñas:** valorar revocar automáticamente las que lleven N días sin usarse (cron con `last_used`).
+- [x] Alternativa A (v0.3): limitar las contraseñas del plugin a `/wp-connect-mcp/mcp`, paquetes de funciones por usuario, registro de uso y límite de volumen. Hecho en local el 31/10/2026 (0.3.0), a falta de probarlo en el sitio.
+- [ ] Subir la 0.2.2 al sitio de pruebas (ficheros cambiados: `wp-connect-mcp.php`, `includes/Admin/ConnectPage.php`, `includes/Abilities/GetTemplateStatus.php`, `CreatePost.php`, `UpdatePost.php` e `includes/Support/PostFormatter.php`) y probar:
   - `get-template-status`: `archive.exists: true` con la 2516 y sus condiciones en `templates`;
   - `create-post` de un borrador de prueba: sin `content`, con `content_hash` igual al MD5 enviado, y con `return_content: true`;
   - `update-post` solo con `scheduled_date`: respuesta ligera;
@@ -29,42 +54,41 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 - [ ] Probar en el sitio `upload-media` y `featured_image`, que la prueba de marketing no llegó a usar.
 - [x] Crear el commit de la 0.2.1 y generar `~/Descargas/wp-connect-mcp-0.2.1.zip` desde él. Hecho el 29/10/2026.
 - [x] Implementar y verificar localmente categorías, campos Yoast, slug, subida de imágenes/imagen destacada, usuario actual, estado de plantillas y filtro de entradas por categoría. Hecho el 29/10/2026; falta la prueba integrada en WordPress.
-- [ ] (En parte, 30–31/10/2026, en la prueba de marketing: `tools/list`, `get-current-user`, categorías, plantillas y crear con slug y Yoast. Faltan la imagen y los rechazos.) Subir los ficheros nuevos y cambiados a `test.wwwarcelona.net` y ejecutar la ronda integrada: `tools/list` (nueve), `get-current-user` (confirmar usuario y rol), categorías, plantillas, crear con slug/Yoast, subir imagen válida, destacarla y probar los rechazos de formato, tamaño y autoría.
+- [ ] (En parte, 30–31/10/2026, en la prueba de marketing: `tools/list`, `get-current-user`, categorías, plantillas y crear con slug y Yoast. Faltan la imagen y los rechazos.) Subir los ficheros nuevos y cambiados al sitio de pruebas y ejecutar la ronda integrada: `tools/list` (nueve), `get-current-user` (confirmar usuario y rol), categorías, plantillas, crear con slug/Yoast, subir imagen válida, destacarla y probar los rechazos de formato, tamaño y autoría.
 - [ ] Decidir con marketing si se admite `elementor_data`; no se implementa sin esa decisión por el mayor riesgo y coste de validación.
-- [x] Hecho el 30/10/2026 (lo instaló marketing desde el zip; ruta `/wp-connect-mcp/mcp` y nueve herramientas). Instalar el plugin renombrado en `test.wwwarcelona.net`. El 28/10/2026 se subieron por error los ficheros anteriores al cambio de nombre (confirmado por Adrián; por eso sigue la ruta antigua). Pasos: desactivar y borrar «wwwarcelona WP Connect» (carpeta `wwwarcelona-wp-connect/`), subir `~/Descargas/wp-connect-mcp-0.2.1.zip` desde *Plugins → Añadir nuevo → Subir plugin* (o la carpeta completa como `wp-content/plugins/wp-connect-mcp/`, con `vendor/`) y activarla. Crear la conexión de nuevo desde la página (`wp-connect-mcp-test-wwwarcelona-net`) y comprobar `tools/list`: nueve herramientas `wp-connect-mcp-*`. Las conexiones antiguas de Claude Code dejan de funcionar.
+- [x] Hecho el 30/10/2026 (lo instaló marketing desde el zip; ruta `/wp-connect-mcp/mcp` y nueve herramientas). Instalar el plugin renombrado en el sitio de pruebas. El 28/10/2026 se subieron por error los ficheros anteriores al cambio de nombre (confirmado por Adrián; por eso sigue la ruta antigua). Pasos: desactivar y borrar «wwwarcelona WP Connect» (carpeta `wwwarcelona-wp-connect/`), subir `~/Descargas/wp-connect-mcp-0.2.1.zip` desde *Plugins → Añadir nuevo → Subir plugin* (o la carpeta completa como `wp-content/plugins/wp-connect-mcp/`, con `vendor/`) y activarla. Crear la conexión de nuevo desde la página (`wp-connect-mcp-` + dominio de pruebas) y comprobar `tools/list`: nueve herramientas `wp-connect-mcp-*`. Las conexiones antiguas de Claude Code dejan de funcionar.
 - [ ] Decidir si se renombra la carpeta local del repositorio (`wwwarcelona-wp-connect`); el remoto ya es `wp-connect-mcp`.
 - [x] `git push origin main` de la 0.2.0 (`84e6666`) y del ESTADO (`c6f667d`), hecho por Adrián desde fuera de Claude Code (aquí no hay credenciales de GitHub). Hecho el 28/10/2026.
 - [ ] Tags: no enviarlos por ahora (decisión de Adrián, 28/10/2026). `v0.1.0` y `v0.2.2` existen solo en local; `v0.2.1` no se crea (la sustituye la 0.2.2). Crear la release cuando la versión esté probada en el sitio y se decida enviarlos.
-- [ ] Subir a `test.wwwarcelona.net` los ficheros de la versión 0.2.1 y probar con el Autor: publicar la 2501 (programada) con `update-post` y `status: publish` (debe salir ya, con la fecha actual), crear una entrada directamente publicada, despublicar una propia (`status: draft`) y `status: publish` con `scheduled_date` (rechazado). Con un Colaborador, `status: publish` debe rechazarse; completar además la ronda de las nueve tools indicada arriba.
+- [ ] Subir al sitio de pruebas los ficheros de la versión 0.2.1 y probar con el Autor: publicar la 2501 (programada) con `update-post` y `status: publish` (debe salir ya, con la fecha actual), crear una entrada directamente publicada, despublicar una propia (`status: draft`) y `status: publish` con `scheduled_date` (rechazado). Con un Colaborador, `status: publish` debe rechazarse; completar además la ronda de las nueve tools indicada arriba.
 - [ ] Entrada de prueba 2501 («Nuevo post»), programada para el 28/10/2026 a las 12:57: se publicará sola. Decidir si se deja o se envía a la papelera.
 - [ ] Valorar si `PostAccess::find()` debe dar `Permission denied` en lugar de «El ID no corresponde a una entrada (post)» cuando el ID es de otro tipo: hoy deja saber a quien tiene `edit_posts` que ese ID existe y no es una entrada (también para páginas en borrador o privadas). Riesgo bajo.
 - [x] Entrada de prueba 2499 («Qué tal»): enviada a la papelera con `trash-post` antes de publicarse, y restaurada desde el escritorio. Hecho el 28/10/2026.
 - [x] Entrada 2499 («Qué tal») programada de nuevo para el 28/10/2026 a las 12:34: se publicó sola y se envió a la papelera ya publicada. Hecho el 28/10/2026.
 - [x] Entrada 2499: vaciada la papelera desde el escritorio. Hecho el 28/10/2026.
 - [ ] Quitar el conector de claude.ai «WP NovaMira wwwarcelona test site» (claude.ai → Ajustes → Conectores). No se puede quitar desde Claude Code. El 28/10/2026 seguía configurado, aunque fallaba con HTTP 502.
-- [x] Subir a `test.wwwarcelona.net` los ficheros de `trash-post` y entradas propias, y probar con un Autor `tools/list` (cinco herramientas) y `trash-post` de una programada propia, restaurable desde el escritorio. Hecho el 28/10/2026.
+- [x] Subir al sitio de pruebas los ficheros de `trash-post` y entradas propias, y probar con un Autor `tools/list` (cinco herramientas) y `trash-post` de una programada propia, restaurable desde el escritorio. Hecho el 28/10/2026.
 - [ ] Pruebas que faltan de `trash-post` y entradas propias: `update-post` de una entrada de otro usuario con el Editor (rechazado); Suscriptor (`Permission denied`); Colaborador con una entrada suya ya publicada: `get-post`, `update-post` y `trash-post` deben rechazarse.
 - [ ] Decidir, junto con la alternativa, si se mantiene el borrado de entradas propias y la restricción de `update-post` a entradas propias.
 - [ ] Revisar [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) con backend y sistemas, marketing y dirección, y responder a las preguntas del apartado 8.
-- [ ] Si se aprueba la alternativa A (v0.3): limitar las contraseñas del plugin a `/wp-connect-mcp/mcp`, paquetes de funciones por usuario, registro de uso y límite de volumen.
 - [x] Subir `includes/Admin/ConnectPage.php` con el aviso del usuario y comprobar que lo muestra antes y después de crear la conexión. Hecho el 28/10/2026.
 - [x] Revocar la conexión creada con el usuario ID 3 (perfil de ese usuario → *Contraseñas de aplicación*). La nueva ya está en Claude Code, con `test-mcp-sub` (ID 6, Autor). Hecho el 28/10/2026.
 - [ ] Para seguir probando (publicar, Editor, Colaborador, Suscriptor), crear la conexión de nuevo desde la página: la de `test-mcp-1` se quitó de Claude Code el 28/10/2026. Revocar su contraseña en el perfil de `test-mcp-1` si no se va a usar.
-- [ ] Crear usuarios de pruebas cuando haga falta repetir pruebas: `test-mcp-sub` (ID 6) se eliminó el 28/10/2026 y la conexión `wwwarcelona-test-wwwarcelona-net` se quitó de Claude Code el mismo día. Crear otra desde la página con el usuario nuevo.
+- [ ] Crear usuarios de pruebas cuando haga falta repetir pruebas: `test-mcp-sub` (ID 6) se eliminó el 28/10/2026 y la conexión `wwwarcelona-` + dominio de pruebas se quitó de Claude Code el mismo día. Crear otra desde la página con el usuario nuevo.
 - [x] Entrada de prueba 2470 («Hola»): programada, se publicará sola el 28/10/2026 a las 9:00. Si no debe salir, pasarla a borrador (lo puede hacer el agente con la conexión actual). Hecho el 28/10/2026.
 - [x] Decidir qué hacer con la entrada de prueba 2467 («Prueba desde Claude Code»): está programada y se publicará sola el 28/10/2026 a las 9:00. Para evitarlo, pasarla a borrador o a la papelera desde el escritorio. Hecho el 28/10/2026.
 
 - [x] Confirmar que la entrada 2453 pasa de `future` a `publish` sola.
 - [x] Enviar la entrada de prueba 2453 a la papelera desde el escritorio (el agente no puede borrar). Hecho el 28/10/2026.
 - [x] Probar con un usuario Suscriptor: todas las herramientas deben rechazarse.
-- [x] Subir `includes/Support/PostAccess.php` corregido a `test.wwwarcelona.net` y repetir `get-post` como Suscriptor: debe dar `Permission denied`.
-- [x] Revisar el log de PHP en `test.wwwarcelona.net`: solo debería aparecer el aviso de "deprecated" del adapter.
-- [ ] **Fuera del plugin, seguridad del sitio:** `https://test.wwwarcelona.net/wp-content/debug.log` se puede descargar desde internet (HTTP 206, 27/10/2026). Mover el log fuera de la carpeta pública (`define('WP_DEBUG_LOG', '/ruta/fuera/de/htdocs/debug.log');`) o bloquearlo en la configuración del servidor. Revisar lo mismo en otros sitios. El log pesa 152 MB y está lleno de avisos de otros plugins.
+- [x] Subir `includes/Support/PostAccess.php` corregido al sitio de pruebas y repetir `get-post` como Suscriptor: debe dar `Permission denied`.
+- [x] Revisar el log de PHP en el sitio de pruebas: solo debería aparecer el aviso de "deprecated" del adapter.
+- [ ] **Fuera del plugin, seguridad del sitio:** `wp-content/debug.log` del sitio de pruebas se puede descargar desde internet (HTTP 206, 27/10/2026). Mover el log fuera de la carpeta pública (`define('WP_DEBUG_LOG', '/ruta/fuera/de/htdocs/debug.log');`) o bloquearlo en la configuración del servidor. Revisar lo mismo en otros sitios. El log pesa 152 MB y está lleno de avisos de otros plugins.
 - [ ] Valorar instalar el plugin oficial MCP Adapter en lugar de llevarlo dentro de `vendor/`, para quitar el aviso de "deprecated" (v0.3).
 - [x] `wp-json.json`: borrado confirmado en el commit `a981dd7`.
 - [x] Primer commit (`a981dd7`, en `main`).
 - [x] Commit de la corrección de `PostAccess.php`, `ESTADO.md` y la documentación (`587e6f9`).
-- [x] Subir `includes/Admin/ConnectPage.php` e `includes/Plugin.php` a `test.wwwarcelona.net`, crear la conexión desde *Herramientas → Conectar con Claude*, pegar el comando y comprobar que Claude Code conecta.
+- [x] Subir `includes/Admin/ConnectPage.php` e `includes/Plugin.php` al sitio de pruebas, crear la conexión desde *Herramientas → Conectar con Claude*, pegar el comando y comprobar que Claude Code conecta.
 - [x] Pedir a Claude, en una sesión nueva, una tarea real con el sitio conectado.
 - [ ] Revisar la página con un usuario administrador (debe recomendar un usuario propio para Claude) y comprobar que la conexión aparece en la lista y se puede revocar desde el perfil.
 - [ ] Probar el comando de la página en Windows (PowerShell) y en un Mac.
@@ -73,18 +97,20 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 - [ ] Decidir si el agente puede crear etiquetas nuevas o solo usar las existentes.
 - [ ] Acordar el rol estándar del usuario del agente: Autor, que puede programar, o Colaborador, que solo deja entradas pendientes.
 
-## Pruebas en test.wwwarcelona.net
+## Pruebas en el sitio
 
 Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexión actual de Claude Code desde el 28/10/2026), `test-mcp` (ID 5, puede crear y programar) y `test-mcp-sub` (ID 6, eliminado el 28/10/2026; era Suscriptor en las pruebas del 26 y 27/10, ahora es Autor y su nombre visible es «test-mcp»). Comandos en la sección «Probar con curl» del README.
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
+| 31/10/2026 | 0.3.0 fuera de WordPress (sin sitio ni usuario real). Simulación con funciones de WordPress sustituidas: paquetes, `Guard::protect()`, límite por hora, registro, filtro de `tools/list`, revocación, alcance de la contraseña por ruta y XML-RPC, y migración | ✅ 34 de 34. La contraseña del plugin da 403 en `/wp/v2/posts`, `/wp/v2/users/me`, `/batch/v1`, `/` y rutas parecidas (`/wp-connect-mcp/mcpx`); el MCP pasa; la contraseña manual no se toca fuera del MCP y no entra en él |
+| 31/10/2026 | Bloques de Mac y Linux (página y README) con servidor local (`php -S`) y `claude` simulado, respuestas por tubería | ✅ Contraseña correcta: guarda la conexión. Incorrecta (401), sin acceso (403), sitio sin plugin y `http://` externo: mensaje claro y no guarda nada. `curl` recibe la contraseña por la entrada estándar. Bloques de Windows sin probar (aquí no hay PowerShell) |
 | 31/10/2026 | 0.2.2 fuera de WordPress: `php -l`; cobertura de condiciones de `get-template-status` (16 casos: `include/archive`, categoría con ID, autor, búsqueda, `exclude/archive`, `include/singular`, entrada concreta…); `PostFormatter::saved()` con y sin contenido; página de conexión generada simulando WordPress (inicio, sin casilla, administrador, conexión creada); bloque de Mac y Linux con las respuestas por tubería, un servidor local (`php -S`) y un `claude` simulado | ✅ Todo como se esperaba. Los comandos no contienen la contraseña. Bloque: contraseña vacía, incorrecta (401), sitio sin plugin (404), sin conexión y sin `claude` fallan con su mensaje y no guardan nada; contraseña con espacios correcta → `claude mcp add` con la cabecera esperada; si la conexión existe pregunta, y con «n» no cambia nada. Bloque de Windows sin probar |
 | 31/10/2026 | `get-template-status` con la 0.2.1, con `test` (ID 8, Autor, confirmado con `get-current-user`) | ❌ `single_post` bien (2505, `include/singular/post`), pero `archive.exists: false`, aunque la plantilla de Archivo 2516 se aplica en las categorías y en la búsqueda (`elementor-location-archive` en el HTML público, según la prueba de marketing). Corregido en la 0.2.2 |
 | 31/10/2026 | Prueba de marketing con el plugin de Claude `post-create-wwwarcelona` (notas en `../pruebas-automatizacion/aprendizaje-plugin.md`), con `test` (ID 8, Autor): `create-post` de 10 borradores con categoría, extracto, slug y Yoast; `update-post` con `scheduled_date` en los 10; `list-posts` con `status: [future]` y con `publish` | ✅ Entradas 2519–2528 en `draft`, con el marcado de bloques entero (`wp_kses_post` no quitó nada); después las 10 en `future` (03/11–07/12/2026, 09:00 `+01:00`), sin pasar `status`. Un Autor no ve las publicadas de otro (0 resultados). ⚠️ `create-post` y `update-post` devuelven el contenido entero (unos 12 KB por entrada, también al cambiar solo la fecha): corregido en la 0.2.2 |
 | 31/10/2026 | Prueba de marketing, primera sesión con la conexión: `get-current-user`, `list-posts`, `list-categories` y `get-template-status` | ✅ `test` (ID 8, `author`, `publish_posts` y `upload_files` sí, `edit_others_posts` no); 9 herramientas |
-| 30/10/2026 | Prueba de marketing: instalar la 0.2.1 desde el zip y crear la conexión desde la página, con el usuario `test` (Autor) | ✅ `namespaces` con `wp-connect-mcp`; `claude mcp list` con `wp-connect-mcp-test-wwwarcelona-net` conectado. Herramientas disponibles tras abrir una sesión nueva. Pedido: que el comando no lleve la contraseña y que la página confirme el usuario (hecho en la 0.2.2) |
-| 29/10/2026 | Verificación local final de la 0.2.1: `composer dump-autoload`, `php -l` de todo el código propio, coherencia de versión, `git diff --check`, registro de nueve abilities y ramas aisladas de Yoast, longitud SEO, autoría de imagen, base64 inválido y límite de tamaño | ✅ Sin errores. Falta probar la integración con WordPress, Yoast, Elementor y la biblioteca de medios en `test.wwwarcelona.net` |
+| 30/10/2026 | Prueba de marketing: instalar la 0.2.1 desde el zip y crear la conexión desde la página, con el usuario `test` (Autor) | ✅ `namespaces` con `wp-connect-mcp`; `claude mcp list` con `wp-connect-mcp-` + dominio de pruebas conectado. Herramientas disponibles tras abrir una sesión nueva. Pedido: que el comando no lleve la contraseña y que la página confirme el usuario (hecho en la 0.2.2) |
+| 29/10/2026 | Verificación local final de la 0.2.1: `composer dump-autoload`, `php -l` de todo el código propio, coherencia de versión, `git diff --check`, registro de nueve abilities y ramas aisladas de Yoast, longitud SEO, autoría de imagen, base64 inválido y límite de tamaño | ✅ Sin errores. Falta probar la integración con WordPress, Yoast, Elementor y la biblioteca de medios en el sitio de pruebas |
 | 28/10/2026 | Tras subir el plugin renombrado (según Adrián), comprobación sin credenciales: `POST` a `wp-connect-mcp/mcp` y a `wwwarcelona/mcp` (también con `?rest_route=` para saltar cachés), índice de `wp-json/`, `users/5`, `6`, `7`, `posts/2501` y `claude mcp list` | ❌ `wp-connect-mcp/mcp` da 404 (`rest_no_route`) y `wwwarcelona/mcp` da 401: sigue registrada la ruta antigua y no la nueva. La 2501 da 401: existe, aunque no es pública (borrador o papelera); no está borrada definitivamente. Los usuarios dan 404, que no confirma nada (la API pública oculta a quien no tiene entradas publicadas). En Claude Code no queda ninguna conexión del plugin ✅ |
 | 28/10/2026 | Programar la 2501 (último post según `list-posts`) con `update-post` y `scheduled_date` a 10 minutos, con `test-mcp-1` (Autor) | ✅ `future`, `2026-10-28T12:57:32+01:00` |
 | 28/10/2026 | `create-post` «Nuevo post» («Prueba para test») sin estado, con `test-mcp-1` (Autor, confirmado con `users/me?context=edit`) | ✅ Entrada 2501 en `draft`, autor ID 7 |
@@ -96,16 +122,16 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 | 28/10/2026 | Restaurar la 2499 desde *Entradas → Papelera* (comprobado por Adrián en el escritorio) | ✅ Vuelve como borrador y sin programar: no se publica sola; para que salga hay que volver a programarla o publicarla |
 | 28/10/2026 | `trash-post` de la 2499 (propia, programada), con `test-mcp-1` (Autor) | ✅ Pasa a `trash` antes de su hora de publicación y no se publica |
 | 28/10/2026 | `update-post` de la 2499 (propia, programada): título «Qué tal» y contenido «Hola», con `test-mcp-1` (Autor) | ✅ Cambian título y contenido; sigue en `future` a las 12:28 y el slug se queda en `hola` |
-| 28/10/2026 | Conexión `wwwarcelona-test-wwwarcelona-net` nueva: usuario y rol con `users/me?context=edit`, y `tools/list` | ✅ `test-mcp-1` (ID 7), rol `author`. Salen las 5 herramientas, `trash-post` incluida: la versión nueva está subida |
+| 28/10/2026 | Conexión `wwwarcelona-` + dominio de pruebas nueva: usuario y rol con `users/me?context=edit`, y `tools/list` | ✅ `test-mcp-1` (ID 7), rol `author`. Salen las 5 herramientas, `trash-post` incluida: la versión nueva está subida |
 | 28/10/2026 | `create-post` «Hola» («Qué tal») programada a 10 minutos, con `test-mcp-1` (Autor) | ✅ Entrada 2499 en `future`, `2026-10-28T12:28:28+01:00`, autor ID 7 |
 | 27/10/2026 | Contraseña de la conexión de Claude Code (`test-mcp-sub`, ID 6, Autor, confirmado con `users/me?context=edit`) contra la API general: `GET wp/v2/users/me` y `GET wp/v2/posts?status=draft`. Solo lectura | ⚠️ Los dos dan `200 OK`; el usuario tiene `publish_posts` y `delete_posts`. La credencial sirve fuera del MCP: podría publicar y borrar por `wp/v2`. Documentado en docs/ALTERNATIVAS.md |
 | 27/10/2026 | `create-post` «Hola» («Qué tal») programada para el 28/10/2026 a las 9:00, con `test-mcp-sub` (Autor) | ✅ Entrada 2470 en `future`, `2026-10-28T09:00:00+01:00`, autor ID 6 |
-| 27/10/2026 | Conexión `wwwarcelona-test-wwwarcelona-net` de Claude Code: usuario y rol con `users/me` | ✅ `test-mcp-sub` (ID 6), rol `author`, con `edit_posts` y `publish_posts`. Con esta conexión la 2467 (del usuario ID 3) da 403: un Autor no puede editar entradas de otros |
+| 27/10/2026 | Conexión `wwwarcelona-` + dominio de pruebas de Claude Code: usuario y rol con `users/me` | ✅ `test-mcp-sub` (ID 6), rol `author`, con `edit_posts` y `publish_posts`. Con esta conexión la 2467 (del usuario ID 3) da 403: un Autor no puede editar entradas de otros |
 | 27/10/2026 | Tarea real: borrar la 2467. No hay herramienta de borrado; se intenta con `update-post` y `status: trash` | ✅ Rechazado por el esquema: «input[status] no es uno de draft, pending y future» |
 | 27/10/2026 | Tarea real desde Claude Code (conexión creada en la página, usuario ID 3): intentar publicar la 2467 con `update-post` y `status: publish` | ✅ Rechazado por el esquema: «input[status] no es uno de draft, pending y future» |
 | 27/10/2026 | Tarea real: `create-post` «Prueba desde Claude Code» programada para el 28/10/2026 a las 9:00 sin zona horaria | ✅ Entrada 2467 en `future`, `2026-10-28T09:00:00+01:00` (zona del sitio). `modified` sale igual a la fecha programada: es lo que hace WordPress al crear una entrada con fecha |
 | 27/10/2026 | Tarea real: `list-posts` con `per_page: 5` | ✅ 3 entradas (las que el usuario puede editar: 1439, 1437, 1238). La 2453, en la papelera, no aparece |
-| 27/10/2026 | Página *Herramientas → Conectar con Claude* en Linux: crear conexión, copiar y pegar el comando | ✅ Claude Code guarda `wwwarcelona-test-wwwarcelona-net` en la configuración de usuario. `claude mcp get` da «✔ Connected» |
+| 27/10/2026 | Página *Herramientas → Conectar con Claude* en Linux: crear conexión, copiar y pegar el comando | ✅ Claude Code guarda `wwwarcelona-` + dominio de pruebas en la configuración de usuario. `claude mcp get` da «✔ Connected» |
 | 27/10/2026 | Log de PHP desde la activación (26/10, 12:58 UTC) | ✅ Sin errores fatales, sin warnings y sin errores `[wwwarcelona-wp-connect]`. Solo el aviso esperado del adapter (28 veces, una por petición que lo inicializa). El resto de avisos son de otros plugins (Enlazatom, traducciones del tema y ACF) |
 | 27/10/2026 | Suscriptor con la corrección subida: `get-post` con 2453 (existe, en papelera) y 99999 (no existe) | ✅ Los dos dan `Permission denied`: ya no se revela qué IDs existen |
 | 26/10/2026 | Suscriptor `test-mcp-sub` (ID 6): `list-posts`, `create-post` | ✅ `Permission denied` |
@@ -129,6 +155,11 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 
 | Fecha | Decisión | Motivo |
 |---|---|---|
+| 31/10/2026 | No escribir el dominio del sitio de pruebas en el repositorio: «el sitio de pruebas» y, en nombres de conexión, «dominio de pruebas» | El repositorio remoto es público |
+| 31/10/2026 | Aplicar la alternativa A sin esperar a la reunión (petición de Adrián): contraseña limitada al MCP, MCP solo con contraseñas de la página, paquetes *Leer*, *Escribir* y *Papelera* por usuario (en `user_meta`, sin capacidades ni roles nuevos), registro en una opción (no en `debug.log`) y límite por hora | Cerrar el agujero de `wp/v2` antes de seguir. Los paquetes van en el servidor porque las skills se pueden saltar. Tres paquetes para poder negar la papelera; se pueden agrupar si se decide uno por plugin de skills |
+| 31/10/2026 | Migración: quien ya tenía una conexión de la página recibe los tres paquetes, una sola vez | Para no cortar la conexión de marketing (`test`, ID 8) al actualizar. Queda en el registro como «(sistema)» |
+| 31/10/2026 | Desactivar el servidor MCP por defecto del adapter, salvo con `wp_connect_mcp_keep_default_server` | Lo creaba el adapter que trae el plugin, con `execute-ability` para cualquier usuario con `read`. Novamira lo necesita: en sus sitios hay que mantenerlo a propósito |
+| 31/10/2026 | Al crear una conexión, casilla marcada para revocar las anteriores | Las contraseñas perdidas o de equipos antiguos seguían valiendo sin caducar |
 | 31/10/2026 | Tag `v0.2.2` en local sobre el commit de la versión, aunque aún no está probada en el sitio. Sin push. Cambia el criterio del 28/10 (etiquetar solo lo probado) | Pedido por Adrián. La 0.2.1, que contiene, sí está probada en el sitio por la prueba de marketing; la release se sigue dejando para cuando la 0.2.2 esté probada |
 | 31/10/2026 | La página de conexión ya no pone la contraseña en el comando: la muestra aparte y da dos bloques (Mac y Linux, y Windows PowerShell), en pestañas, que la piden al ejecutarse. Deja de admitirse cmd. Exige confirmar el usuario y el rol con una casilla. Sustituye a «Se acepta que la credencial quede en el historial» y a «un comando de una línea, válido en Mac, Linux y Windows» (27/10/2026) | Pedido por Adrián tras la prueba de marketing: el comando se copia, se pega y puede acabar en un chat (también el de Claude), en una captura o en el historial. Un comando que pida la contraseña no puede ser igual en bash y en PowerShell; las pestañas abren solas la del sistema |
 | 31/10/2026 | `create-post` y `update-post` responden por defecto sin el contenido, con longitud, MD5, encabezados y enlaces; `return_content: true` lo devuelve | Al subir y programar un lote de 10 entradas, el texto volvía entero en cada respuesta (unos 240 KB de contexto). El MD5 sirve para comprobar que ha llegado entero sin repetirlo |
@@ -162,6 +193,28 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 
 ### 31/10/2026
 
+- Eliminado `notes/CONTINUACION_20261027.md`: todo lo que pedía está hecho o recogido. Plugin de skills: aparte (`post-create-wwwarcelona`). Abilities limitadas y otorgar o revocar por usuario: paquetes de la 0.3.0. Escalado: regla de paquetes en AGENTS.md. Seguridad, Chrome, Playwright, objeción de sistemas, n8n y control en skills frente a paneles: docs/ALTERNATIVAS.md y docs/INFORME-SEGURIDAD.md. Las decisiones que quedan están en Pendientes.
+- Nuevo [docs/INFORME-SEGURIDAD.md](docs/INFORME-SEGURIDAD.md): versión local en Markdown del informe para sistemas (artifact privado).
+- Quitadas de ESTADO.md las referencias al dominio del sitio de pruebas: el repositorio remoto es público. Siguen en el historial de git.
+- Versión 0.3.0 (en local, sin commit), alternativa A de docs/ALTERNATIVAS.md:
+  - `includes/Security/`: `ApplicationPasswordScope` (contraseña limitada al MCP, también en XML-RPC), `Grants` (paquetes, revocación y migración), `Guard` (envoltura de cada ability, límite por hora, filtro de `tools/list` y acceso al transporte) y `AuditLog`;
+  - `includes/Admin/GrantsPage.php`: *Usuarios → Acceso de Claude*;
+  - las nueve abilities, registradas con `Guard::protect()`; `get-current-user` devuelve `packages`;
+  - `Plugin.php`: transporte solo con contraseña de la página y paquetes, y servidor MCP por defecto desactivado;
+  - `ConnectPage.php`: exige paquetes, propone revocar las conexiones anteriores, comprueba antes la disponibilidad, valida la dirección del sitio y no admite `&` ni `%`.
+- Revisión de seguridad de todos los MD y del código, hecha por un agente aparte. Arreglados:
+  - el servidor por defecto del adapter;
+  - las contraseñas acumuladas;
+  - la credencial como argumento de `curl`;
+  - `http://` en los bloques;
+  - `upload-media` (tamaño antes de decodificar y megapíxeles);
+  - `home_url()`, `&` y `%` en los comandos;
+  - crear la contraseña sin comprobar antes la disponibilidad;
+  - el aviso del portapapeles.
+
+  Quedan en Pendientes: datos reales en los MD, credencial en `claude mcp add`, etiquetas y caducidad.
+- Bloques del README: validan contra el MCP (antes, contra `wp/v2/users/me`, que ahora da 403) y tratan el 403 como «sin acceso». «Probar con curl»: `-K <(auth)` y paso 0 que comprueba el 403 fuera del MCP.
+- README, CHANGELOG, AGENTS.md y docs/ALTERNATIVAS.md actualizados para la 0.3.0. Informe para sistemas publicado como artifact privado.
 - Commit de la versión 0.2.2, tag `v0.2.2` en local y zip `~/Descargas/wp-connect-mcp-0.2.2.zip` generado desde el commit. Sin push.
 - Versión 0.2.2 (en local, sin commit) a partir de las notas de la prueba de marketing (`../pruebas-automatizacion/`, solo leídas):
   - `GetTemplateStatus`: condiciones analizadas por segmentos y nuevo `templates`;
@@ -185,7 +238,7 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 - Generado `~/Descargas/wp-connect-mcp-0.2.0.zip` desde `ff8b5fc` (`wp-connect-mcp.php`, `includes/` y `vendor/` en la carpeta `wp-connect-mcp/`). Proceso del zip por versión anotado en AGENTS.md.
 - Adrián: subidos los ficheros, quitada la conexión local, eliminado el usuario de pruebas con sus entradas y hechas las verificaciones. Desde aquí, sin credenciales: confirmado que Claude Code no tiene ninguna conexión del plugin, pero el sitio sigue sirviendo `/wwwarcelona/mcp` y no `/wp-connect-mcp/mcp`, y la 2501 sigue existiendo. Adrián confirma que subió los ficheros anteriores, no los nuevos: va a borrar el plugin y subirlo de nuevo.
 - Renombrado a WP Connect MCP: `wp-connect-mcp.php`, `WpConnectMcp\` (con `composer dump-autoload`), constantes `WP_CONNECT_MCP_*`, categoría, servidor, text domain y página `wp-connect-mcp`, ruta `wp-connect-mcp/mcp`, abilities `wp-connect-mcp/*`, códigos de error `wp_connect_mcp_*` y conexión `wp-connect-mcp-<dominio>` (página y bloques de terminal). README, AGENTS.md, CHANGELOG y docs/ALTERNATIVAS.md al día; los ejemplos usan `example.com`. `php -l` correcto. Sin subir ni probar en el sitio.
-- Quitada de Claude Code la conexión `wwwarcelona-test-wwwarcelona-net` (`test-mcp-1`). No queda ninguna conexión local a `test.wwwarcelona.net`. La contraseña de aplicación sigue activa en WordPress hasta revocarla. Intentado `git push` sin tags: falló por credenciales.
+- Quitada de Claude Code la conexión `wwwarcelona-` + dominio de pruebas (`test-mcp-1`). No queda ninguna conexión local al sitio de pruebas. La contraseña de aplicación sigue activa en WordPress hasta revocarla. Intentado `git push` sin tags: falló por credenciales.
 - Versión 0.2.0: cabecera y constante del plugin, CHANGELOG separado en 0.2.0 y 0.1.0. Tag `v0.1.0` en local sobre `169509e`. El plan de la alternativa A pasa a v0.3.
 - docs/ALTERNATIVAS.md: tabla «Qué permite cada vía con la misma credencial» (plugin frente a `wp/v2`, por acción y rol, con Elementor) en el apartado 2 y nota de Elementor en la alternativa C. README: punto de seguridad de la API REST actualizado (el riesgo ya no es publicar, sino borrar para siempre, tocar lo de otros y salir de las entradas) y nota de Elementor.
 - Publicar entradas propias: `publish` añadido a `PostInput::STATUSES`, con `PostInput::publish()` (exige `publish_posts`/`publish_post`, no admite `scheduled_date` y pone la fecha actual para que una programada no vuelva a `future`). Textos de las herramientas, del servidor y de la página de conexión, README, CHANGELOG, AGENTS.md y docs/ALTERNATIVAS.md al día. `php -l` correcto y reglas probadas fuera de WordPress simulando sus funciones. Falta subir y probar en el sitio.
@@ -199,11 +252,11 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 - Enviada a la papelera la 2499 («Qué tal») con `trash-post`, antes de su hora de publicación.
 - Editada la 2499: título «Qué tal» y contenido «Hola».
 - Conectado con la nueva conexión (`test-mcp-1`, ID 7, Autor), creada desde la página. Llamadas hechas por HTTP leyendo la credencial de `~/.claude.json` sin mostrarla, porque las herramientas no estaban cargadas en la sesión. Programada la entrada 2499 («Hola») para las 12:28.
-- Revisadas las conexiones MCP de Claude Code: ninguna local de Novamira apunta a `test.wwwarcelona.net` (solo iss, consiliors, ai y, en otros proyectos, fundaciopm y trailrun). Queda el conector de claude.ai «WP NovaMira wwwarcelona test site», que se quita desde claude.ai.
+- Revisadas las conexiones MCP de Claude Code: ninguna local de Novamira apunta al sitio de pruebas (solo iss, consiliors, ai y, en otros proyectos, fundaciopm y trailrun). Queda el conector de claude.ai «WP NovaMira wwwarcelona test site», que se quita desde claude.ai.
 - README: nueva tabla «Quién puede usar cada herramienta» (comprobación de cada ability y qué puede hacer cada rol) y tabla de roles de «Conexión» ajustada. Las restricciones del Colaborador sobre entradas publicadas vienen de WordPress; falta comprobarlas en el sitio.
 - `trash-post` admite también entradas publicadas: quitada la comprobación de estado. Documentación al día. Falta probar en el sitio.
 - Corregir errores propios: `PostAccess::canEditOwn()` y `canDeleteOwn()` (comprueban la capacidad general antes de buscar la entrada y después que el autor sea el usuario actual); `update-post` usa `canEditOwn()`; nueva ability `trash-post` (`includes/Abilities/TrashPost.php`). Textos de la página de conexión y del servidor, README, CHANGELOG, AGENTS.md y docs/ALTERNATIVAS.md al día. `php -l` correcto y caminos probados fuera de WordPress simulando sus funciones (propia, de otro, publicada, programada, inexistente, repetida, sin capacidades). Falta probar en el sitio.
-- Limpieza del sitio de pruebas (hecha por Adrián): subida la `ConnectPage.php` con el aviso del usuario y comprobada, revocada la conexión del usuario ID 3 y eliminadas las entradas de prueba 2470, 2467 y 2453 y el usuario `test-mcp-sub`. Comprobado desde aquí que la conexión de Claude Code ya da `invalid_username`. Quitada de Claude Code la conexión `wwwarcelona-test-wwwarcelona-net`: en local solo quedan las de Novamira (iss, consiliors, ai).
+- Limpieza del sitio de pruebas (hecha por Adrián): subida la `ConnectPage.php` con el aviso del usuario y comprobada, revocada la conexión del usuario ID 3 y eliminadas las entradas de prueba 2470, 2467 y 2453 y el usuario `test-mcp-sub`. Comprobado desde aquí que la conexión de Claude Code ya da `invalid_username`. Quitada de Claude Code la conexión `wwwarcelona-` + dominio de pruebas: en local solo quedan las de Novamira (iss, consiliors, ai).
 
 ### 27/10/2026
 
@@ -213,9 +266,9 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 - Vuelto a conectar Claude Code desde la página, con `test-mcp-sub` (ID 6, Autor).
 - Programada desde Claude Code la entrada 2470 («Hola») para el 28/10/2026 a las 9:00, con la conexión de `test-mcp-sub` (Autor).
 - Revisada la conexión de Claude Code: usa `test-mcp-sub` (ID 6), que ahora es Autor. ESTADO.md lo seguía dando como Suscriptor; corregido.
-- Eliminada también de Claude Code la conexión `wwwarcelona-test-wwwarcelona-net` (ya fallaba al conectar). Claude Code no tiene ninguna conexión a `test.wwwarcelona.net`; solo queda el conector de claude.ai de Novamira.
+- Eliminada también de Claude Code la conexión `wwwarcelona-` + dominio de pruebas (ya fallaba al conectar). Claude Code no tiene ninguna conexión al sitio de pruebas; solo queda el conector de claude.ai de Novamira.
 - Revisada la sesión de la tarea real: el autor de la 2467 es el usuario ID 3, no `test-mcp` (ID 5); la conexión se creó con la sesión abierta en el escritorio. La página ahora muestra con qué usuario se crea la conexión.
-- Eliminada de Claude Code la conexión `novamira-test-wwwarcelona` (Novamira en `test.wwwarcelona.net`, usuario `adrian`), para que el agente solo tenga acceso al sitio a través de este plugin. Queda el conector de claude.ai «WP NovaMira wwwarcelona test site», que se quita desde los ajustes de claude.ai.
+- Eliminada de Claude Code la conexión `novamira-` + dominio de pruebas (Novamira en el sitio de pruebas, usuario `adrian`), para que el agente solo tenga acceso al sitio a través de este plugin. Queda el conector de claude.ai «WP NovaMira wwwarcelona test site», que se quita desde los ajustes de claude.ai.
 - Tarea real desde Claude Code con la conexión creada en la página: listar entradas, crear y programar la 2467 e intentar publicarla y borrarla. Todo como se esperaba: la publicación y el borrado se rechazan.
 - Página *Herramientas → Conectar con Claude* (`includes/Admin/ConnectPage.php`):
   - instrucciones paso a paso en pantalla;
@@ -224,12 +277,12 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
   - lista de conexiones del usuario, con su último uso y enlace para revocarlas;
   - avisos si las contraseñas de aplicación no están disponibles y si el usuario es administrador.
 
-  Probada fuera de WordPress, simulando sus funciones, y después en `test.wwwarcelona.net`: la conexión creada desde la página funciona en Claude Code («✔ Connected»).
+  Probada fuera de WordPress, simulando sus funciones, y después en el sitio de pruebas: la conexión creada desde la página funciona en Claude Code («✔ Connected»).
 - README reorganizado: la conexión desde el escritorio pasa a ser la recomendada y los bloques de terminal, la alternativa.
 - Conexión con Claude Code: primero un script (`bin/conectar-claude.sh`), sustituido el mismo día por bloques para copiar y pegar en el README (Linux/macOS y Windows). Los bloques confirman el sitio antes de pedir credenciales. Probados en Linux los casos de contraseña incorrecta, rechazo de la confirmación y dirección inexistente; no se guarda nada en ninguno. El bloque de Windows está sin probar.
 - Corregido el comando de técnicos: `<sitio>` como hueco rompía el comando en bash; además `--scope local` pasa a `--scope user`.
 - Revisado el log de PHP del sitio de pruebas: el plugin no genera errores. Detectado que `debug.log` es accesible públicamente (problema del sitio, no del plugin).
-- Subida a `test.wwwarcelona.net` la corrección de `PostAccess.php` y comprobada con el Suscriptor: `Permission denied` exista o no el ID.
+- Subida al sitio de pruebas la corrección de `PostAccess.php` y comprobada con el Suscriptor: `Permission denied` exista o no el ID.
 - Documentación revisada y al día: sección Instalación en el README, límites de permisos y sesiones, regla nueva en AGENTS.md, CHANGELOG.
 
 ### 26/10/2026
@@ -237,7 +290,7 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 - Prueba con Suscriptor: sin acceso a ninguna herramienta. Corregido `PostAccess::canEdit()` para comprobar `edit_posts` antes de buscar la entrada (no revelar qué IDs existen).
 - Comprobado que una sesión MCP no se puede usar con las credenciales de otro usuario.
 - Commit `a981dd7` en `main` con la v0.1.0 (código, `vendor/` con el autoloader de Jetpack y documentación) y el borrado de `wp-json.json`.
-- Pruebas en `test.wwwarcelona.net`: conexión, herramientas, CRUD, rechazos y programación (ver tabla).
+- Pruebas en el sitio de pruebas: conexión, herramientas, CRUD, rechazos y programación (ver tabla).
 - Documentación: sección «Probar con curl» en el README, función `mcp_call` para las pruebas, tabla de problemas habituales, reglas nuevas en AGENTS.md y este fichero.
 - `.gitignore` con `headers.txt` y `tools.json`, que se generan en las pruebas.
 - Implementación de la v0.1.0: bootstrap, `Plugin`, cuatro abilities (`list-posts`, `get-post`, `create-post`, `update-post`) y clases de apoyo (`PostInput`, `PostAccess`, `PostFormatter`).

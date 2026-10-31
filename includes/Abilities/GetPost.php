@@ -3,6 +3,7 @@
 namespace WpConnectMcp\Abilities;
 
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Guard;
 use WpConnectMcp\Support\PostAccess;
 use WpConnectMcp\Support\PostFormatter;
 
@@ -14,7 +15,7 @@ final class GetPost
 
     public static function register(): void
     {
-        wp_register_ability(self::NAME, [
+        wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Leer entrada',
             'description' => 'Devuelve una entrada (post) con su contenido sin procesar, extracto, estado, fechas, categorías y etiquetas.',
             'category' => Plugin::CATEGORY,
@@ -36,7 +37,7 @@ final class GetPost
                     'idempotent' => true,
                 ],
             ],
-        ]);
+        ]));
     }
 
     /**

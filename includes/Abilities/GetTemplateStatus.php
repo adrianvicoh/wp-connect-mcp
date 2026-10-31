@@ -4,6 +4,7 @@ namespace WpConnectMcp\Abilities;
 
 use WP_Query;
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Guard;
 
 defined('ABSPATH') || exit;
 
@@ -20,7 +21,7 @@ final class GetTemplateStatus
 
     public static function register(): void
     {
-        wp_register_ability(self::NAME, [
+        wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Comprobar plantillas del blog',
             'description' => 'Comprueba si Elementor Pro tiene plantillas publicadas que se aplican a la entrada individual y al archivo del blog (categorías incluidas). Devuelve también las demás plantillas de cada tipo con sus condiciones y si cubren el blog. No devuelve su contenido.',
             'category' => Plugin::CATEGORY,
@@ -38,7 +39,7 @@ final class GetTemplateStatus
             'execute_callback' => [self::class, 'execute'],
             'permission_callback' => [self::class, 'permission'],
             'meta' => ['annotations' => ['readonly' => true, 'destructive' => false, 'idempotent' => true]],
-        ]);
+        ]));
     }
 
     public static function permission(): bool

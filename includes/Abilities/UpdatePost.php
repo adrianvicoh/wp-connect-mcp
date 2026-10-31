@@ -4,6 +4,7 @@ namespace WpConnectMcp\Abilities;
 
 use WP_Error;
 use WpConnectMcp\Plugin;
+use WpConnectMcp\Security\Guard;
 use WpConnectMcp\Support\PostAccess;
 use WpConnectMcp\Support\PostFormatter;
 use WpConnectMcp\Support\PostInput;
@@ -17,7 +18,7 @@ final class UpdatePost
 
     public static function register(): void
     {
-        wp_register_ability(self::NAME, [
+        wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Editar entrada',
             'description' => 'Modifica solo los campos indicados de una entrada (post) creada por este usuario. Puede pasarla a borrador, pendiente, programada o publicada (si el usuario puede publicar). Publicar una programada la publica ahora.',
             'category' => Plugin::CATEGORY,
@@ -45,7 +46,7 @@ final class UpdatePost
                     'idempotent' => true,
                 ],
             ],
-        ]);
+        ]));
     }
 
     /**

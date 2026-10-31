@@ -2,6 +2,28 @@
 
 Cambios por versión publicada. El día a día (pruebas, decisiones, pendientes) está en [ESTADO.md](ESTADO.md).
 
+## 0.3.0 (sin publicar)
+
+Seguridad: aplica la alternativa A de [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md). Probada fuera de WordPress; falta probarla en el sitio antes de usarla en producción.
+
+- **La contraseña de la conexión solo vale para el MCP.** Las creadas desde *Conectar con Claude* responden 403 (`wp_connect_mcp_password_scope`) en el resto de la API REST y en XML-RPC. El MCP solo acepta esas contraseñas: las creadas a mano en el perfil dan 403.
+- **Paquetes por usuario:** *Leer*, *Escribir* y *Papelera*. Los otorga un administrador en la nueva página *Usuarios → Acceso de Claude*. Sin paquetes no se abre sesión ni se puede crear la conexión; con ellos, `tools/list` solo muestra sus herramientas. Al quitar todos los paquetes se revocan las conexiones del usuario. Al actualizar, quien ya tenía una conexión recibe los tres paquetes una sola vez.
+- **Registro de uso:** herramientas usadas, accesos denegados y cambios de permisos, en *Usuarios → Acceso de Claude* (últimos 500, en la base de datos).
+- **Límite por hora y usuario** en las herramientas que escriben (filtro `wp_connect_mcp_rate_limits`).
+- **Servidor MCP por defecto del adapter desactivado** (`/wp-json/mcp/mcp-adapter-default-server`, con `execute-ability` y acceso con solo `read`). Se mantiene con el filtro `wp_connect_mcp_keep_default_server` (por ejemplo, para Novamira).
+- `get-current-user` devuelve `packages`.
+- `upload-media`: rechaza un envío demasiado grande antes de decodificarlo y las imágenes de más de 40 megapíxeles (filtro `wp_connect_mcp_max_upload_pixels`).
+- **Página *Conectar con Claude*:**
+  - muestra los paquetes del usuario;
+  - propone revocar las conexiones anteriores (casilla marcada por defecto);
+  - no crea nada si las contraseñas de aplicación no están disponibles;
+  - valida también la dirección del sitio que se inserta en los comandos y deja de admitir `&` y `%`;
+  - avisa de no pegar la contraseña si el comando se detiene antes.
+- **Bloques de la terminal (página y README):**
+  - mensaje claro con 403 (sin acceso);
+  - `curl` recibe la contraseña por la entrada estándar (`-K -`), no como argumento;
+  - los del README validan contra el MCP, no contra `wp/v2/users/me`, y rechazan direcciones `http://` salvo `localhost`.
+
 ## 0.2.2 (sin publicar)
 
 No usar en producción, por el mismo motivo que la 0.2.1.

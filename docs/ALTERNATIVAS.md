@@ -44,9 +44,13 @@ Con un Autor el riesgo extra es sobre todo borrar para siempre sus entradas; con
 
 Esto afecta a cualquier alternativa que use contraseñas de aplicación (A, C y F) y es lo primero que hay que corregir si se sigue con ellas. La corrección es sencilla: que las contraseñas creadas por el plugin solo se acepten en la ruta del MCP (ver alternativa A).
 
+**Estado (31/10/2026):** corregido en la **0.3.0**, sin probar todavía en el sitio. Las contraseñas creadas desde *Conectar con Claude* responden 403 fuera del MCP (`wp/v2`, `batch`, XML-RPC), y el MCP solo acepta esas contraseñas. Las creadas a mano en el perfil siguen valiendo para `wp/v2` según el rol, pero ya no sirven para el MCP.
+
 ## 3. Alternativas
 
 ### A. MCP propio reforzado (propuesta principal)
+
+**Estado:** implementada en la **0.3.0** (31/10/2026), probada fuera de WordPress y pendiente de probar en el sitio de pruebas. Detalle técnico en el README («Dar y quitar acceso» y «Seguridad y limitaciones conocidas»).
 
 **Cómo funciona.** Es el plugin actual con cuatro refuerzos:
 
@@ -230,12 +234,24 @@ La opción c) recoge lo que se busca con la pregunta: la definición vive junto 
 
 **Lo que es cierto.** Con el plugin tal como está (v0.1.0, v0.2.0 y v0.2.1), una credencial filtrada permite hacer por la API general de WordPress todo lo que permita el rol del usuario (apartado 2). En ese estado no debe ir a producción.
 
-**Lo que se corrige con A.** La credencial queda limitada a la ruta del MCP y a los paquetes del usuario. Se revoca sin tocar su contraseña de acceso, deja registro de uso y tiene un límite de volumen.
+**Lo que se corrige con A (0.3.0).**
+
+- La credencial queda limitada a la ruta del MCP y a los paquetes del usuario.
+- Se revoca sin tocar su contraseña de acceso; al quitar todos los paquetes, se revocan todas.
+- Deja registro de uso y tiene un límite de volumen por hora.
+- Además, a raíz de la revisión del 31/10:
+  - se desactiva el servidor MCP por defecto del adapter, que exponía `execute-ability` a cualquier usuario con `read`;
+  - la página propone revocar las conexiones anteriores al crear una nueva;
+  - las subidas se limitan antes de decodificarlas y por megapíxeles;
+  - los bloques de la terminal rechazan `http://` y pasan la contraseña a `curl` por la entrada estándar.
 
 **Lo que queda.**
 
 - Quien tenga una credencial válida puede hacer, dentro de su paquete, lo mismo que haría la IA. Por ejemplo, crear entradas programadas que se publicarán solas.
 - La dependencia del adapter MCP de WordPress, aún en versión 0.x.
+- Las contraseñas de aplicación creadas a mano en el perfil siguen valiendo para la API REST según el rol. Si no se quieren, se desactivan con un plugin de seguridad.
+- Al guardar la conexión, `claude mcp add` recibe la credencial como argumento durante un instante: puede quedar en registros de auditoría de procesos (EDR, Sysmon, auditd).
+- `tags` permite a un Autor crear etiquetas nuevas, cosa que WordPress no le permite por `wp/v2/tags`.
 - Lo que el agente escriba en el contenido (texto erróneo o inyectado). Se controla con revisión humana antes de la fecha programada.
 
 **Condiciones mínimas para producción:**
@@ -254,7 +270,7 @@ Si no se aceptan estas condiciones: alternativa **B** (solo staging) o **H** (fi
 
 ## 7. Recomendación
 
-1. **A + paquetes (5c)** como canal de escritura para marketing. Antes de usarlo en producción, implementar la contraseña limitada a la ruta, los paquetes, el registro y los límites.
+1. **A + paquetes (5c)** como canal de escritura para marketing. La contraseña limitada a la ruta, los paquetes, el registro y los límites ya están en la 0.3.0: falta probarla en el sitio de pruebas y el visto bueno de sistemas.
 2. **B** para los sitios de clientes con producción sensible, o mientras sistemas no dé el visto bueno a A.
 3. **Playwright** para verificar y hacer QA (capturas de las entradas programadas, pruebas tras actualizar), no para escribir.
 4. **n8n** solo donde ya funcione, y migrar a **F2** (n8n planifica, el MCP escribe) cuando se toque cada proyecto.
@@ -266,7 +282,9 @@ Si no se aceptan estas condiciones: alternativa **B** (solo staging) o **H** (fi
 - ¿Se acepta A en producción con las condiciones del apartado 6, o solo B?
 - ¿Qué rol estándar se da a los usuarios de marketing: Autor (puede programar) o Colaborador (solo deja pendientes)?
 - ¿El agente puede editar entradas ya publicadas? Recomendación: no.
-- ¿Puede crear etiquetas nuevas o solo usar las existentes?
+- ¿Puede crear etiquetas nuevas o solo usar las existentes? Hoy un Autor puede crearlas por el MCP, aunque WordPress no se lo permite por su API.
+- En sitios con Novamira, ¿se mantiene el servidor MCP por defecto (`wp_connect_mcp_keep_default_server`) o se separa Novamira de los sitios con marketing?
+- ¿Se mantienen los paquetes *Leer*, *Escribir* y *Papelera*, o se agrupan en un paquete por plugin de skills?
 - ¿Quién otorga y revisa los paquetes en cada sitio: sistemas, el responsable del proyecto o marketing?
 - ¿Cada cuánto se rotan las contraseñas y quién lo hace?
 - ¿Qué proyectos de n8n se mantienen y cuáles pasan a F2?

@@ -9,16 +9,26 @@ Plugin de WordPress que expone un servidor MCP propio para que Claude u otros ag
 | `wp-connect-mcp-list-posts` | Lista entradas editables por el usuario (búsqueda, estado, paginación). |
 | `wp-connect-mcp-list-categories` | Lista categorías con sus IDs, jerarquía y enlaces. |
 | `wp-connect-mcp-get-post` | Lee una entrada: contenido sin procesar, extracto, estado, fechas, categorías y etiquetas. |
-| `wp-connect-mcp-get-current-user` | Indica el usuario, sus roles y las capacidades relevantes de la conexión. |
+| `wp-connect-mcp-get-current-user` | Indica el usuario, sus roles, las capacidades relevantes y los paquetes de herramientas que tiene otorgados. |
 | `wp-connect-mcp-get-template-status` | Comprueba si hay plantillas publicadas de Elementor Pro que se aplican a la entrada y al archivo del blog, y lista todas las de cada tipo con sus condiciones. |
 | `wp-connect-mcp-create-post` | Crea una entrada como borrador, pendiente, programada o publicada. Devuelve un resumen sin el contenido. |
 | `wp-connect-mcp-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. Devuelve un resumen sin el contenido. |
 | `wp-connect-mcp-upload-media` | Sube una imagen en base64, opcionalmente adjunta a una entrada propia. |
 | `wp-connect-mcp-trash-post` | Envía a la papelera una entrada creada por el usuario, también si ya está publicada. |
 
-Cada tool es una ability de WordPress con el mismo nombre y `/` tras el prefijo `wp-connect-mcp` (`wp-connect-mcp/list-posts`, etc.), en la categoría `wp-connect-mcp`. Solo se exponen en el servidor `/wp-json/wp-connect-mcp/mcp`.
+Cada tool es una ability de WordPress con el mismo nombre y `/` tras el prefijo `wp-connect-mcp` (`wp-connect-mcp/list-posts`, etc.), en la categoría `wp-connect-mcp`. Solo se exponen en el servidor `/wp-json/wp-connect-mcp/mcp`, y cada usuario solo ve y usa las de los **paquetes** que le haya dado un administrador (ver «Dar y quitar acceso»).
 
 ### Quién puede usar cada herramienta
+
+Para usar una herramienta hacen falta dos cosas: el **paquete** que la contiene, otorgado por un administrador en *Usuarios → Acceso de Claude*, y el **rol** adecuado (tabla de abajo).
+
+| Paquete | Herramientas |
+|---|---|
+| **Leer** (`posts-lectura`) | `list-posts`, `list-categories`, `get-post`, `get-current-user`, `get-template-status` |
+| **Escribir** (`posts-escritura`) | `create-post`, `update-post`, `upload-media` |
+| **Papelera** (`posts-papelera`) | `trash-post` |
+
+Sin ningún paquete, el usuario no puede crear la conexión ni abrir sesión MCP (403). Con paquetes, `tools/list` solo muestra las herramientas de esos paquetes, y las demás dan `Permission denied`.
 
 | Tool | Comprobación | Colaborador | Autor | Editor y Administrador |
 |---|---|---|---|---|
@@ -61,7 +71,7 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 - `featured_image`: ID de una imagen subida por el mismo usuario de la conexión; `0` la quita.
 - Respuesta de `create-post` y `update-post`: los mismos campos que `get-post` salvo `content`, más `content_length` (caracteres), `content_hash` (MD5 del contenido guardado), `headings` (número de encabezados) y `links` (número de enlaces). Si `content_hash` coincide con el MD5 del contenido enviado (`md5sum` del fichero), ha llegado entero y el filtro no ha quitado nada. Con `return_content: true` devuelven también `content`. Así, subir un lote no repite cada texto de ida y de vuelta.
 - `get-template-status`: para `single_post` y `archive`, `exists`, `id`, `title` y `conditions` indican la plantilla que se aplica al blog, y `templates` lista todas las publicadas de ese tipo con sus condiciones y `covers_blog`. Cubren el blog, en el archivo, las condiciones de Elementor `include/general`, `include/archive` (todos los archivos), `include/archive/post_archive` y las de categorías y etiquetas (con o sin ID); en la entrada, `include/general`, `include/singular` y `include/singular/post`. Una exclusión amplia del mismo grupo (por ejemplo, `exclude/archive`) lo anula. Las plantillas solo de autor, fecha, búsqueda, una entrada concreta o una categoría de entradas aparecen en `templates` con `covers_blog: false`.
-- `upload-media` solo admite JPEG, PNG, WebP y GIF reales, no solo por extensión; máximo 2 MB por defecto. No admite URLs remotas para evitar SSRF. El límite se puede cambiar con el filtro `wp_connect_mcp_max_upload_bytes`.
+- `upload-media` solo admite JPEG, PNG, WebP y GIF reales, no solo por extensión; máximo 2 MB y 40 megapíxeles por defecto. Rechaza un envío demasiado grande antes de decodificarlo. No admite URLs remotas para evitar SSRF. Los límites se cambian con los filtros `wp_connect_mcp_max_upload_bytes` y `wp_connect_mcp_max_upload_pixels`.
 - Cualquier otro campo (por ejemplo, `post_type` o `author`) se rechaza.
 
 Límites:
@@ -71,7 +81,10 @@ Límites:
 - En entradas propias ya publicadas se puede editar el contenido, que cambia en directo, y también cambiar su estado: volver a borrador o pendiente la despublica. En entradas privadas se puede editar el contenido, pero no su estado ni su fecha.
 - **Solo modifica, publica y borra entradas propias** (las creadas por el usuario de la conexión), aunque su rol permita tocar las de otros: las demás dan «Solo se pueden modificar o borrar las entradas creadas por este usuario». Leer y listar sí incluye las de otros si el rol lo permite.
 - **Borrar es enviar a la papelera**: una persona puede restaurar la entrada desde el escritorio. Vuelve como borrador y sin programar, aunque estuviera programada o publicada: para que salga hay que volver a programarla o publicarla. Vale para cualquier estado: si la entrada estaba publicada, deja de verse en el sitio al momento. Un Colaborador no puede borrar sus entradas ya publicadas (WordPress no se lo permite). Si el sitio tiene la papelera desactivada (`EMPTY_TRASH_DAYS` a 0), no se borra nada.
-- No borra definitivamente ni toca páginas, usuarios, ajustes, plugins o temas. Solo sube imágenes del usuario autenticado. El servidor expone exactamente estas nueve tools, no las meta-tools de descubrimiento del servidor MCP por defecto.
+- No borra definitivamente ni toca páginas, usuarios, ajustes, plugins o temas. Solo sube imágenes del usuario autenticado. El servidor expone como mucho estas nueve tools, no las meta-tools de descubrimiento.
+- **El servidor MCP por defecto del adapter queda desactivado** (`/wp-json/mcp/mcp-adapter-default-server`, con `execute-ability` y acceso con solo `read`). Si el sitio lo necesita (por ejemplo, Novamira, que lo usa), se mantiene con `add_filter('wp_connect_mcp_keep_default_server', '__return_true');` en un plugin propio o mu-plugin.
+- **Límite por hora y usuario** en las herramientas que escriben: `create-post` 30, `update-post` 120, `upload-media` 60 y `trash-post` 30. Al superarlo, la herramienta responde que se ha alcanzado el máximo. Se cambian con el filtro `wp_connect_mcp_rate_limits`.
+- **Registro de uso:** cada herramienta usada, cada acceso denegado y cada cambio de permisos queda anotado (fecha, usuario, acción, ID y resultado) y se ve en *Usuarios → Acceso de Claude*. Se guardan los últimos 500 movimientos en la base de datos, no en `debug.log`.
 - Cada acción respeta las capacidades del usuario de WordPress (`edit_posts`, `edit_post`, `delete_posts`, `delete_post`, `publish_post`, asignar categorías y etiquetas). Sin `edit_posts` (por ejemplo, un Suscriptor) todas las herramientas responden `Permission denied`, sin revelar si un ID existe.
 - Las sesiones MCP van ligadas al usuario que las abre: no se pueden usar con las credenciales de otro.
 - El contenido se filtra con `wp_kses_post`, también para administradores.
@@ -88,9 +101,10 @@ El paquete `wordpress/mcp-adapter` va incluido en `vendor/` y se carga con el au
 
 1. Copiar la carpeta del plugin a `wp-content/plugins/wp-connect-mcp/`, **con `vendor/` incluido** (no hace falta Composer en el servidor).
 2. Activarlo en *Plugins*. Si WordPress es anterior a 6.9, aparece un aviso y el plugin no hace nada.
-3. Crear el usuario que va a usar Claude (ver «Conexión») y conectarlo desde *Herramientas → Conectar con Claude*.
+3. Crear el usuario que va a usar Claude (ver «Conexión») y darle acceso en *Usuarios → Acceso de Claude*.
+4. Conectarlo desde *Herramientas → Conectar con Claude*, entrando con ese usuario.
 
-Para actualizar, basta con subir los ficheros cambiados; no hay que reactivar el plugin. Las conexiones ya creadas siguen funcionando.
+Para actualizar, basta con subir los ficheros cambiados; no hay que reactivar el plugin. Al pasar a la 0.3.0, quien ya tenía una conexión creada desde la página recibe los tres paquetes una sola vez (queda en el registro de uso como «(sistema)»), así que sus conexiones siguen funcionando. Las contraseñas creadas a mano en el perfil dejan de valer para el MCP.
 
 ## Conexión
 
@@ -106,9 +120,20 @@ El usuario con el que se conecta Claude determina lo que puede hacer (detalle po
 
 Ningún rol permite a Claude borrar definitivamente ni tocar entradas de otros usuarios a través de este plugin. Lo recomendable es un usuario propio para Claude, con rol Autor si puede publicar (o Colaborador si una persona debe revisarlo y publicarlo todo), no el de una persona ni el de un administrador.
 
+### Dar y quitar acceso
+
+Lo hace un administrador (capacidad `promote_users`) en **Usuarios → Acceso de Claude**:
+
+- una fila por usuario que puede editar entradas, con una casilla por paquete (*Leer*, *Escribir*, *Papelera*), sus conexiones con el último uso y quién hizo el último cambio y cuándo;
+- nadie tiene acceso por defecto;
+- al quitar todos los paquetes a un usuario, **se revocan también sus conexiones** con Claude (sus contraseñas creadas desde la página);
+- debajo, el **registro de uso**: los últimos 100 movimientos.
+
+Para un usuario de marketing que usa el plugin de Claude de posts, lo normal es *Leer* + *Escribir*, y *Papelera* solo si debe poder retirar entradas.
+
 Endpoint: `https://<sitio>/wp-json/wp-connect-mcp/mcp` (es el dato que se usa en los comandos de abajo, no un comando).
 
-La forma recomendada es desde el escritorio de WordPress. La versión con la contraseña aparte (0.2.2) está probada fuera de WordPress, con el bloque de Mac y Linux; falta probarla en el sitio, en Windows y en un Mac (ver [ESTADO.md](ESTADO.md)).
+La forma recomendada es desde el escritorio de WordPress. La 0.3.0 (acceso por paquetes y contraseña limitada al MCP) está probada fuera de WordPress, con el bloque de Mac y Linux; falta probarla en el sitio, en Windows y en un Mac (ver [ESTADO.md](ESTADO.md)).
 
 ### Conectar Claude Code desde el escritorio (recomendado)
 
@@ -119,16 +144,20 @@ Para cualquier persona, también si no es informática. No hay que saber el usua
 3. Elegir la pestaña del sistema (*Mac y Linux* o *Windows (PowerShell)*; se abre sola la del equipo) y pulsar **Copiar** en el comando.
 4. Abrir la terminal (Mac: *Terminal*; Windows: *PowerShell*; Linux: *Terminal*), pegar el comando y pulsar Intro.
 5. Cuando el comando la pida, copiar la **contraseña de aplicación** de la página con su botón **Copiar** y pegarla en la terminal (no se ve mientras se pega). No pegarla nunca en un chat, tampoco en el de Claude.
-6. Abrir una sesión nueva de Claude Code y escribir `/mcp`: el sitio debe aparecer conectado y con 9 herramientas.
+6. Abrir una sesión nueva de Claude Code y escribir `/mcp`: el sitio debe aparecer conectado, con las herramientas de sus paquetes (9 con los tres).
+
+Si el usuario no tiene ningún paquete, la página lo dice y no ofrece el botón: hay que pedir acceso a un administrador.
 
 La página explica estos mismos pasos en pantalla.
 
 Qué hace la página por dentro:
 
-- **Contraseña de aplicación:** crea una para el usuario conectado, con el nombre «Claude Code · fecha» y el identificador de aplicación del plugin (`ConnectPage::APP_ID`).
+- **Contraseña de aplicación:** crea una para el usuario conectado, con el nombre «Claude Code · fecha» y el identificador de aplicación del plugin (`ConnectPage::APP_ID`). **Solo vale para el MCP:** en el resto de la API REST (`wp/v2`, `batch`…) y en XML-RPC responde 403. Y el MCP solo acepta contraseñas creadas aquí.
+- **Solo con acceso:** si el usuario no tiene ningún paquete, no se crea nada (se comprueba también en el servidor).
+- **Revocar las anteriores:** la casilla «Revocar mis conexiones anteriores con Claude» viene marcada; así, una contraseña perdida o de un equipo antiguo deja de valer. Se desmarca solo para usar Claude en varios equipos.
 - **Contraseña aparte:** se muestra en su propio recuadro, con su botón «Copiar» y el aviso de no pegarla en ningún chat. Los comandos no la llevan, así que se pueden reenviar sin riesgo y no queda en el historial de la terminal.
 - **Un comando por sistema, en pestañas:** *Mac y Linux* (bloque `bash <<'EOF' … EOF`, válido también en zsh) y *Windows (PowerShell)* (bloque `& { … }`, PowerShell 5.1 y 7; no vale el Símbolo del sistema). Al cargar se abre la pestaña del sistema del navegador. Llevan ya puestos el sitio, el endpoint, el nombre de la conexión y el usuario. Al ejecutarse piden la contraseña sin mostrarla, la comprueban contra el MCP (contraseña incorrecta, sitio sin plugin o sin conexión dan un mensaje claro y no guardan nada), preguntan antes de sustituir una conexión que ya exista y guardan la conexión con `claude mcp add --transport http --scope user`. Hacen lo mismo que los bloques de «Alternativa: desde la terminal», sin preguntar el sitio ni el usuario.
-- **Se muestra una sola vez:** si se pierde la contraseña, se crea otra conexión.
+- **Se muestra una sola vez:** si se pierde la contraseña, se crea otra conexión (con «Revocar mis conexiones anteriores» marcada, la perdida deja de valer).
 - **Nombre de la conexión:** `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`).
 - **Lista de conexiones:** muestra las del usuario con su último uso, y enlaza al perfil para revocarlas (*Contraseñas de aplicación*).
 - **Si no están disponibles las contraseñas de aplicación** (sitio sin HTTPS o desactivadas por un plugin de seguridad), la página lo explica y no ofrece el botón.
@@ -137,11 +166,11 @@ Qué hace la página por dentro:
 - **Caracteres raros:** si el nombre de usuario o la dirección tienen caracteres que el comando no admite (fuera de letras, números, espacio, `_ . @ -` en el usuario), la página no crea la contraseña y remite a los bloques de la terminal.
 - **Quién la ve:** está en *Herramientas* para cualquier usuario con `edit_posts`, que es lo mínimo que necesitan las herramientas.
 
-Contrapartida de seguridad: la credencial ya no queda en el historial de la terminal, pero sí en `~/.claude.json`. Es una contraseña de aplicación revocable, solo vale para ese usuario y no da acceso al escritorio. Si se sospecha que se ha visto, se revoca en el perfil y se crea otra.
+Contrapartida de seguridad: la credencial ya no queda en el historial de la terminal, pero sí en `~/.claude.json`. Es una contraseña de aplicación revocable, solo vale para ese usuario y para el MCP, con sus paquetes, y no da acceso al escritorio. Si se sospecha que se ha visto, se revoca en el perfil y se crea otra.
 
 ### Alternativa: desde la terminal
 
-Para cuando no se puede entrar en el escritorio de WordPress. Hay que crear antes la contraseña de aplicación a mano: *Usuarios → Editar usuario → Contraseñas de aplicación*, en el perfil del usuario que va a usar Claude.
+Para cuando el comando de la página no sirve (por ejemplo, se quiere conectar otro equipo) o lo hace un técnico. La contraseña de aplicación tiene que crearse igualmente desde *Herramientas → Conectar con Claude*, con el usuario que va a usar Claude y con acceso otorgado en *Usuarios → Acceso de Claude*: el plugin rechaza las contraseñas creadas a mano en el perfil.
 
 No hay que descargar nada: se copia el bloque entero, se pega en la terminal y se pulsa Intro. El bloque pregunta, uno a uno:
 
@@ -150,9 +179,9 @@ No hay que descargar nada: se copia el bloque entero, se pega en la terminal y s
 3. el usuario de WordPress;
 4. la contraseña de aplicación (no se ve mientras se escribe o se pega).
 
-Antes de guardar nada comprueba que el usuario y la contraseña son correctos y que el sitio tiene el plugin activo. Si algo falla, explica en lenguaje claro qué revisar. Si el sitio ya estaba conectado, pregunta antes de sustituir la conexión. La contraseña no queda en el historial de la terminal.
+Antes de guardar nada comprueba, contra el propio MCP, que el usuario y la contraseña son correctos, que el usuario tiene acceso y que el sitio tiene el plugin activo. Si algo falla, explica en lenguaje claro qué revisar. Si el sitio ya estaba conectado, pregunta antes de sustituir la conexión. La contraseña no queda en el historial de la terminal.
 
-Al terminar, el sitio queda conectado como `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`). Después hay que abrir una sesión nueva de Claude Code y comprobar con `/mcp` que aparece conectado y con 9 herramientas.
+Al terminar, el sitio queda conectado como `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`). Después hay que abrir una sesión nueva de Claude Code y comprobar con `/mcp` que aparece conectado, con las herramientas de sus paquetes.
 
 #### Linux y macOS (Terminal)
 
@@ -169,6 +198,7 @@ read -r -p "1/4 Dirección del sitio (por ejemplo, https://example.com): " SITE 
 SITE=$(printf '%s' "$SITE" | tr -d '[:space:]'); SITE=${SITE%/}
 [ -n "$SITE" ] || fallo "No has escrito la dirección del sitio."
 case "$SITE" in http://*|https://*) ;; *) SITE="https://$SITE" ;; esac
+case "$SITE" in http://localhost*|http://127.0.0.1*) ;; http://*) fallo "La dirección empieza por http://: la contraseña viajaría sin cifrar." "Escríbela con https:// (como en el navegador, con el candado)." ;; esac
 HOST=${SITE#*://}; HOST=${HOST%%/*}
 RESP=$(curl -sS --max-time 20 -w '\n%{http_code}' "$SITE/wp-json/" 2>/dev/null)
 [ "${RESP##*$'\n'}" != "000" ] || fallo "No se puede conectar con $SITE." "Revisa que la dirección esté bien escrita y que tengas internet."
@@ -184,18 +214,20 @@ read -r -p "3/4 Usuario de WordPress: " WP_USER </dev/tty
 read -r -s -p "4/4 Contraseña de aplicación (no se verá mientras escribes o pegas): " WP_APP_PASS </dev/tty; echo
 [ -n "$WP_APP_PASS" ] || fallo "No has escrito la contraseña de aplicación."
 echo
-echo "Comprobando el usuario y la contraseña…"
-CODE=$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' -u "$WP_USER:$WP_APP_PASS" "$SITE/wp-json/wp/v2/users/me" 2>/dev/null)
+echo "Comprobando el usuario, la contraseña y el plugin…"
+MCP="$SITE/wp-json/wp-connect-mcp/mcp"
+RESP=$(printf 'user = "%s:%s"\n' "$WP_USER" "$WP_APP_PASS" | curl -sS --max-time 20 -K - -w '\n%{http_code}' "$MCP" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"conectar-claude","version":"1.0"}}}' 2>/dev/null)
+CODE=${RESP##*$'\n'}
 case "$CODE" in
-  200) echo "✅ Usuario y contraseña correctos." ;;
-  401) fallo "El usuario o la contraseña de aplicación no son correctos." "Revisa el usuario y genera una contraseña nueva en WordPress: Usuarios → (el usuario) → Contraseñas de aplicación." ;;
+  200) ;;
+  000) fallo "No se puede conectar con $SITE." "Revisa que tengas internet y vuelve a pegar este bloque." ;;
+  401) fallo "El usuario o la contraseña de aplicación no son correctos." "Revisa el usuario y crea una conexión nueva en WordPress: Herramientas → Conectar con Claude." ;;
+  403) fallo "Tu usuario no tiene acceso a Claude o la contraseña no se creó desde «Conectar con Claude»." "Pide acceso a un administrador (Usuarios → Acceso de Claude) y crea la contraseña en Herramientas → Conectar con Claude." ;;
+  404) fallo "El sitio no tiene el plugin WP Connect MCP activo." "Pide a soporte técnico que lo instale y lo active." ;;
   *)   fallo "El sitio ha respondido con un error ($CODE)." "Pide ayuda a soporte técnico y diles este número." ;;
 esac
-echo "Comprobando que el sitio tiene el plugin WP Connect MCP…"
-MCP="$SITE/wp-json/wp-connect-mcp/mcp"
-BODY=$(curl -sS --max-time 20 -u "$WP_USER:$WP_APP_PASS" "$MCP" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"conectar-claude","version":"1.0"}}}' 2>/dev/null)
-case "$BODY" in
-  *'"WP Connect MCP"'*) echo "✅ Plugin encontrado." ;;
+case "$RESP" in
+  *'"WP Connect MCP"'*) echo "✅ Usuario, contraseña y plugin correctos." ;;
   *) fallo "El sitio no tiene el plugin WP Connect MCP activo." "Pide a soporte técnico que lo instale y lo active." ;;
 esac
 NAME="wp-connect-mcp-$(printf '%s' "$HOST" | tr '.' '-' | tr -cd 'a-zA-Z0-9-')"
@@ -230,6 +262,7 @@ Abrir **PowerShell** (no «Símbolo del sistema»), pegar el bloque entero y pul
   $site = ("" + (Read-Host "1/4 Dirección del sitio (por ejemplo, https://example.com)")).Trim().TrimEnd('/')
   if (-not $site) { Fallo "No has escrito la dirección del sitio."; return }
   if ($site -notmatch '^https?://') { $site = "https://$site" }
+  if ($site -match '^http://' -and $site -notmatch '^http://(localhost|127\.0\.0\.1)([:/]|$)') { Fallo "La dirección empieza por http://: la contraseña viajaría sin cifrar." "Escríbela con https:// (como en el navegador, con el candado)."; return }
   try { $siteHost = ([Uri]$site).Host } catch { Fallo "La dirección no es válida." "Escríbela como en el navegador, por ejemplo https://example.com"; return }
   $siteName = $null
   try { $siteName = (Invoke-RestMethod -Uri "$site/wp-json/" -TimeoutSec 20 -UseBasicParsing).name }
@@ -246,23 +279,24 @@ Abrir **PowerShell** (no «Símbolo del sistema»), pegar el bloque entero y pul
   $pass = (New-Object Net.NetworkCredential('', $sec)).Password
   if (-not $pass) { Fallo "No has escrito la contraseña de aplicación."; return }
   $auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($user + ':' + $pass))
-  $headers = @{ Authorization = "Basic $auth" }
+  $headers = @{ Authorization = "Basic $auth"; Accept = "application/json, text/event-stream" }
   Write-Host ""
-  Write-Host "Comprobando el usuario y la contraseña..."
-  try { Invoke-RestMethod -Uri "$site/wp-json/wp/v2/users/me" -Headers $headers -TimeoutSec 20 -UseBasicParsing | Out-Null; Write-Host "OK: usuario y contraseña correctos." -ForegroundColor Green }
-  catch {
-    $code = 0; if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
-    if ($code -eq 401) { Fallo "El usuario o la contraseña de aplicación no son correctos." "Revisa el usuario y genera una contraseña nueva en WordPress: Usuarios -> (el usuario) -> Contraseñas de aplicación." }
-    else { Fallo "El sitio ha respondido con un error ($code)." "Pide ayuda a soporte técnico y diles este número." }
-    return
-  }
-  Write-Host "Comprobando que el sitio tiene el plugin WP Connect MCP..."
+  Write-Host "Comprobando el usuario, la contraseña y el plugin..."
   $mcp = "$site/wp-json/wp-connect-mcp/mcp"
   $body = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"conectar-claude","version":"1.0"}}}'
   $init = $null
-  try { $init = Invoke-RestMethod -Method Post -Uri $mcp -Headers ($headers + @{ Accept = "application/json, text/event-stream" }) -ContentType "application/json" -Body $body -TimeoutSec 20 -UseBasicParsing } catch { }
+  try { $init = Invoke-RestMethod -Method Post -Uri $mcp -Headers $headers -ContentType "application/json" -Body $body -TimeoutSec 20 -UseBasicParsing }
+  catch {
+    $code = 0; if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
+    if ($code -eq 0) { Fallo "No se puede conectar con $site." "Revisa que tengas internet y vuelve a pegar este bloque." }
+    elseif ($code -eq 401) { Fallo "El usuario o la contraseña de aplicación no son correctos." "Revisa el usuario y crea una conexión nueva en WordPress: Herramientas -> Conectar con Claude." }
+    elseif ($code -eq 403) { Fallo "Tu usuario no tiene acceso a Claude o la contraseña no se creó desde «Conectar con Claude»." "Pide acceso a un administrador (Usuarios -> Acceso de Claude) y crea la contraseña en Herramientas -> Conectar con Claude." }
+    elseif ($code -eq 404) { Fallo "El sitio no tiene el plugin WP Connect MCP activo." "Pide a soporte técnico que lo instale y lo active." }
+    else { Fallo "El sitio ha respondido con un error ($code)." "Pide ayuda a soporte técnico y diles este número." }
+    return
+  }
   if ($init.result.serverInfo.name -ne "WP Connect MCP") { Fallo "El sitio no tiene el plugin WP Connect MCP activo." "Pide a soporte técnico que lo instale y lo active."; return }
-  Write-Host "OK: plugin encontrado." -ForegroundColor Green
+  Write-Host "OK: usuario, contraseña y plugin correctos." -ForegroundColor Green
   $name = "wp-connect-mcp-" + (($siteHost -replace '\.', '-') -replace '[^a-zA-Z0-9-]', '')
   claude mcp get $name *> $null
   if ($LASTEXITCODE -eq 0) {
@@ -306,17 +340,21 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 
 1. En la terminal: `claude mcp list` muestra el nombre (por ejemplo, `wp-connect-mcp-example-com`) y `claude mcp remove "wp-connect-mcp-example-com"` la borra del equipo.
 2. En WordPress: *Herramientas → Conectar con Claude → Revocar conexiones en tu perfil*, y revocar la contraseña «Claude Code · fecha». Sin este paso, la credencial sigue siendo válida aunque se haya quitado del equipo.
+3. Un administrador puede cortar todas las conexiones de un usuario quitándole todos los paquetes en *Usuarios → Acceso de Claude*.
 
 ## Seguridad y limitaciones conocidas
 
-- **La contraseña de la conexión vale para toda la API REST**, no solo para el MCP: con ella (o el propio agente, ejecutando `curl`) se puede hacer por `wp/v2` todo lo que permita el rol del usuario, saltándose los límites del plugin. Con un Autor, borrar para siempre sus entradas; con un Editor o un Administrador, además tocar entradas de otros, páginas, medios y, con Administrador, ajustes. Hasta que se limite a la ruta del MCP, no usar el plugin en producción. Tabla por acción y análisis en [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md), apartado 2.
+- **La contraseña de la conexión solo vale para el MCP** (desde la 0.3.0): en `wp/v2`, `batch` y XML-RPC responde 403 (`wp_connect_mcp_password_scope`), y el MCP rechaza las contraseñas creadas a mano. Hasta la 0.2.2 valía para toda la API REST y permitía saltarse los límites del plugin. Las contraseñas creadas a mano en el perfil siguen valiendo para la API REST según el rol del usuario: si no se quieren, hay que desactivarlas para esos usuarios con un plugin de seguridad o un filtro (`wp_is_application_passwords_available_for_user`), sabiendo que eso impide también crear la conexión. Análisis en [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) e informe para sistemas en [docs/INFORME-SEGURIDAD.md](docs/INFORME-SEGURIDAD.md).
+- **Paquetes por usuario:** sin paquetes no hay acceso; con ellos, solo sus herramientas. Se imponen en el servidor, no en las skills de Claude. Ver «Dar y quitar acceso».
+- **Credencial en los argumentos de `claude mcp add`:** al guardar la conexión, la cabecera `Authorization` (usuario y contraseña en base64) va como argumento de `claude` durante un instante, así que en equipos con auditoría de procesos (EDR, Sysmon, auditd) puede quedar en sus registros. Las comprobaciones con `curl` de los bloques ya la pasan por la entrada estándar. Si sistemas lo considera un riesgo, revocar la conexión tras configurar el equipo y crear otra.
 - **Elementor:** `get-template-status` solo comprueba si existen plantillas publicadas aplicables al blog; no lee ni modifica su contenido. Ni el plugin ni la API de WordPress editan el diseño de Elementor (se guarda en `_elementor_data`, que no está en la API).
 - **Yoast SEO:** se escriben sus metadatos de título, descripción y frase clave. No se simula la puntuación del editor de Yoast; el análisis se recalcula al abrir o guardar la entrada en WordPress.
 
 - **Otras conexiones al mismo sitio:** el límite de «no tocar entradas de otros» solo vale para este plugin. Si el mismo Claude Code tiene también otra conexión con más permisos (por ejemplo, Novamira o un conector de claude.ai), podría publicar o borrar por esa vía. Para que el límite sea real, quien use esta conexión no debe tener otras al mismo sitio.
 - **Publicar sin revisión:** con un Autor o superior, Claude puede publicar y modificar en directo sus entradas sin que nadie las revise. Si una persona debe revisar antes de publicar, conectar con un Colaborador.
-- **Etiquetas:** `tags` crea las que no existen, si el usuario puede asignar etiquetas.
-- **Credencial en el equipo:** queda en `~/.claude.json` (no en el historial de la terminal: tanto la página como los bloques la piden sin mostrarla). Es revocable y solo vale para la API de ese usuario.
+- **Etiquetas:** `tags` crea las que no existen, si el usuario puede asignar etiquetas. Esto es más de lo que permite WordPress por `wp/v2/tags` a un Autor o Colaborador (crear etiquetas exige `manage_categories`). Pendiente de decidir si solo se usan las existentes.
+- **Credencial en el equipo:** queda en `~/.claude.json` (no en el historial de la terminal: tanto la página como los bloques la piden sin mostrarla). Es revocable y solo vale para el MCP de ese usuario. El botón «Copiar» la deja en el portapapeles: en equipos con historial o sincronización del portapapeles (Windows con Win+V, portapapeles universal de macOS), conviene borrarlo después.
+- **Direcciones `http://`:** los bloques de la terminal las rechazan (salvo `localhost`), porque la contraseña viajaría sin cifrar.
 - **Log de WordPress:** si el sitio tiene `WP_DEBUG_LOG` activo, comprobar que `wp-content/debug.log` no se puede descargar desde internet. En `example.com` sí se podía; es un problema del sitio, no del plugin.
 - **Aviso de deprecación:** el adapter MCP incluido deja un aviso en el log en cada petición. No afecta al funcionamiento.
 
@@ -326,7 +364,9 @@ El transporte HTTP del adapter funciona con sesión, en tres pasos: abrir sesió
 
 Solo hacen falta `curl` y `php` (para leer el JSON); no hay que instalar `jq` ni nada más.
 
-El paso 0 comprueba la Application Password contra la API normal de WordPress, sin el plugin: si ahí falla, el problema no es del MCP.
+La contraseña tiene que ser una creada desde *Herramientas → Conectar con Claude* (las creadas a mano en el perfil dan 403 en el MCP) y el usuario necesita algún paquete en *Usuarios → Acceso de Claude*. La credencial se pasa a `curl` con `-K <(auth)`, por la entrada estándar, para que no aparezca en la lista de procesos (`ps`) ni en los registros de auditoría del equipo.
+
+El paso 0 comprueba que la contraseña **no** sirve fuera del MCP: debe dar 403 con `wp_connect_mcp_password_scope`. Si da 200, el plugin no está limitando la contraseña.
 
 ```bash
 SITE="https://example.com"
@@ -334,24 +374,26 @@ WP_USER="usuario-del-agente"
 read -s -p "Application Password: " WP_APP_PASS; echo   # no queda en el historial
 MCP="$SITE/wp-json/wp-connect-mcp/mcp"
 PV="2025-11-25"
+auth() { printf 'user = "%s:%s"\n' "$WP_USER" "$WP_APP_PASS"; }
 
-# 0. Comprobar credenciales: debe devolver el usuario
-curl -sS "$SITE/wp-json/wp/v2/users/me" -u "$WP_USER:$WP_APP_PASS"; echo
+# 0. La contraseña no debe servir fuera del MCP: debe dar 403 y wp_connect_mcp_password_scope
+curl -sS -o /dev/null -w '%{http_code}\n' "$SITE/wp-json/wp/v2/users/me" -K <(auth)
+curl -sS "$SITE/wp-json/wp/v2/users/me" -K <(auth); echo
 
 # 1. Abrir sesión y guardar el ID
-curl -sS -D headers.txt "$MCP" -u "$WP_USER:$WP_APP_PASS" \
+curl -sS -D headers.txt "$MCP" -K <(auth) \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"'"$PV"'","capabilities":{},"clientInfo":{"name":"curl","version":"1.0"}}}'
 SID=$(grep -i '^mcp-session-id:' headers.txt | awk '{print $2}' | tr -d '\r')
 
 # 2. Confirmar la sesión
-curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
+curl -sS "$MCP" -K <(auth) \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
   -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 
-# 3. Listar herramientas: deben salir exactamente las nueve
-curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
+# 3. Listar herramientas: solo las de los paquetes del usuario (las nueve, con los tres paquetes)
+curl -sS "$MCP" -K <(auth) \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
@@ -361,7 +403,7 @@ curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
 Para llamar a una herramienta, con la misma sesión:
 
 ```bash
-curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
+curl -sS "$MCP" -K <(auth) \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"wp-connect-mcp-list-posts","arguments":{"per_page":5}}}' \
@@ -372,7 +414,7 @@ Para no repetir cabeceras en cada llamada, se puede definir esta función en la 
 
 ```bash
 mcp_call() {
-  curl -sS "$MCP" -u "$WP_USER:$WP_APP_PASS" \
+  curl -sS "$MCP" -K <(auth) \
     -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
     -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
     -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"'"$1"'","arguments":'"$2"'}}' \
@@ -395,7 +437,11 @@ Los errores de las herramientas llegan dentro de `result`, con `isError: true` y
 
 Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 
-- `tools/list` devuelve exactamente las nueve herramientas de «Qué puede hacer el agente».
+- `tools/list` devuelve solo las herramientas de los paquetes del usuario: las nueve con los tres, cinco solo con *Leer*. Sin paquetes, `initialize` da 403.
+- La contraseña de la conexión da 403 (`wp_connect_mcp_password_scope`) en `wp/v2/users/me` y en `wp/v2/posts`; una contraseña creada a mano en el perfil da 403 en el MCP.
+- Con *Leer* + *Escribir*, `trash-post` da `Permission denied`. Quitar todos los paquetes a un usuario revoca sus conexiones (`claude mcp get` deja de conectar) y queda en el registro.
+- El registro de uso de *Usuarios → Acceso de Claude* muestra las herramientas usadas, los accesos denegados y los cambios de permisos.
+- `/wp-json/mcp/mcp-adapter-default-server` da 404 (servidor por defecto desactivado), salvo con `wp_connect_mcp_keep_default_server`.
 - `list-categories` devuelve IDs utilizables; `get-current-user` confirma el usuario y rol antes de las pruebas; `get-template-status` no devuelve contenido de Elementor y detecta una plantilla de Archivo con `include/archive` o con condiciones de categoría (`exists: true`), y lista en `templates` las que no cubren el blog.
 - `create-post` y `update-post` responden sin `content` y con `content_hash` igual al MD5 del contenido enviado; con `return_content: true`, con el contenido.
 - Crear un borrador con `slug` y, si Yoast está activo, sus tres campos SEO; `get-post` devuelve los valores guardados.
@@ -412,6 +458,9 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 | Síntoma | Causa probable |
 |---|---|
 | `404` / `rest_no_route` | Plugin inactivo o WordPress anterior a 6.9 (sale un aviso en el escritorio). |
+| `403` al abrir sesión (`initialize`) | El usuario no tiene ningún paquete en *Usuarios → Acceso de Claude*, o la contraseña se creó a mano en el perfil en lugar de desde *Herramientas → Conectar con Claude*. |
+| `403` `wp_connect_mcp_password_scope` | Es lo esperado: la contraseña de la conexión solo vale para el MCP, no para `wp/v2`. |
+| «Se ha alcanzado el máximo de N usos por hora» | Límite por hora de esa herramienta. Esperar o cambiarlo con `wp_connect_mcp_rate_limits`. |
 | `401` `incorrect_password` | El usuario existe, pero la Application Password no vale: es de otro sitio u otro usuario, o se pegó incompleta (`echo ${#WP_APP_PASS}` debe dar 24 o 29). Generar una nueva en el perfil de ese usuario. |
 | `401` `invalid_username` | El usuario no existe en ese sitio. |
 | `401` sin código de WordPress | El servidor no pasa la cabecera `Authorization` a PHP (Apache con FastCGI). |
@@ -421,7 +470,7 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 | Error de `MCP-Protocol-Version` | Falta esa cabecera en los pasos 2 y siguientes. |
 | `Permission denied` con un Autor o Colaborador | La entrada es de otro usuario: estos roles solo editan las suyas. |
 | «Solo se pueden modificar o borrar las entradas creadas por este usuario» | La entrada es de otro usuario. Pasa también con Editor y Administrador: el plugin solo modifica y borra las propias. |
-| Menos de nueve herramientas | Revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
+| Menos de nueve herramientas | Es lo normal si el usuario no tiene los tres paquetes. Si los tiene, revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
 
 ## Desarrollo
 
@@ -433,8 +482,13 @@ El estado del proyecto, los pendientes, las decisiones y el historial de pruebas
 
 Código propio en `includes/` (PSR-4 `WpConnectMcp\`):
 
-- `Plugin.php`: registra la categoría, las abilities, el servidor MCP y, en el escritorio, la página de conexión.
+- `Plugin.php`: registra la categoría, las abilities, el servidor MCP, los filtros de seguridad y, en el escritorio, las páginas de conexión y de acceso.
 - `Admin/ConnectPage.php`: página *Herramientas → Conectar con Claude* (crea la contraseña de aplicación, la muestra aparte y da los bloques para la terminal de cada sistema).
+- `Admin/GrantsPage.php`: página *Usuarios → Acceso de Claude* (paquetes por usuario y registro de uso).
+- `Security/Grants.php`: paquetes (`PACKAGES`), paquetes de cada usuario, revocación y migración a 0.3.0. **Cada ability nueva debe entrar en un paquete.**
+- `Security/Guard.php`: envuelve cada ability (`Guard::protect()`): paquete y límite por hora antes del permiso propio, registro tras ejecutarla; filtra `tools/list` y da acceso al transporte.
+- `Security/ApplicationPasswordScope.php`: limita las contraseñas del plugin a la ruta del MCP.
+- `Security/AuditLog.php`: registro de uso (opción `wp_connect_mcp_log`).
 - `Abilities/`: una clase por ability (`NAME`, `register()`, `execute()`).
 - `Support/PostInput.php`: saneado y reglas de estado y programación.
 - `Support/PostExtras.php`: validación y escritura de Yoast e imagen destacada.
