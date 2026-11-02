@@ -17,11 +17,12 @@
 - Seguridad en `includes/Security/`: las contraseñas creadas desde la página (`ConnectPage::APP_ID`) solo valen para el MCP y el MCP solo acepta esas (`ApplicationPasswordScope`, `Guard::canConnect()`). Sin paquetes no hay acceso. No quitar estas comprobaciones ni añadir rutas REST propias sin revisar `ApplicationPasswordScope::restrictRoute()`. Un paquete nuevo o ampliado se anota en el CHANGELOG y en el README (tabla de paquetes).
 - Las abilities que escriben (`create-post`, `update-post`) responden con `PostFormatter::saved()`: sin el contenido salvo `return_content: true`, para no gastar contexto del agente. Solo `get-post` devuelve el contenido completo.
 - Despliegue en el sitio de pruebas: subir solo los ficheros cambiados a `wp-content/plugins/wp-connect-mcp/` (con `vendor/` si cambia). No hay paso de compilación.
-- Zip de cada versión, para instalar desde *Plugins → Añadir nuevo → Subir plugin*: tras el commit de la versión, desde la raíz del repositorio y con el árbol limpio, generar `~/Descargas/wp-connect-mcp-<versión>.zip` (la versión sale de la cabecera `Version:` de `wp-connect-mcp.php`). Lleva solo `wp-connect-mcp.php`, `includes/` y `vendor/`, dentro de la carpeta `wp-connect-mcp/` (sin versión, para que WordPress lo instale siempre en la misma carpeta):
+- Zip de cada versión, para instalar desde *Plugins → Añadir nuevo → Subir plugin*: tras el commit de la versión, desde la raíz del repositorio y con el árbol limpio, generar `wp-connect-mcp-<versión>.zip` siempre en la raíz del repositorio, que lo excluye con `.gitignore`, borrando antes el zip anterior: solo queda el de la última versión (la versión sale de la cabecera `Version:` de `wp-connect-mcp.php`). Lleva solo `wp-connect-mcp.php`, `includes/` y `vendor/`, dentro de la carpeta `wp-connect-mcp/` (sin versión, para que WordPress lo instale siempre en la misma carpeta):
 
   ```bash
   V=$(sed -n 's/^ \* Version: *//p' wp-connect-mcp.php)
-  git archive --format=zip --prefix=wp-connect-mcp/ -o ~/Descargas/wp-connect-mcp-$V.zip HEAD wp-connect-mcp.php includes vendor
+  rm -f wp-connect-mcp-*.zip
+  git archive --format=zip --prefix=wp-connect-mcp/ -o wp-connect-mcp-$V.zip HEAD wp-connect-mcp.php includes vendor
   ```
 - Verificación: `php -l` de los ficheros tocados y, en un WordPress de pruebas, `tools/list` y `tools/call` contra `/wp-json/wp-connect-mcp/mcp`. Los pasos con `curl` (sesión, cabeceras) y la lista de comprobación están en la sección «Probar con curl» del README.
 - En comandos de prueba y documentación no depender de herramientas que haya que instalar (`jq` y similares): usar solo `curl` y `php -r` para leer el JSON.

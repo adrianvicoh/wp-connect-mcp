@@ -1,2 +1,5 @@
 headers.txt
 tools.json
+
+# Zip de cada versión (se genera en la raíz con git archive; ver AGENTS.md)
+/wp-connect-mcp-*.zip

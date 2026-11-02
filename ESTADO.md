@@ -5,7 +5,7 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 ## Situación actual
 
 - **0.3.0 instalada y en uso en el sitio de pruebas (comprobado el 02/11/2026):** `get-current-user` devuelve `packages` (los tres, por la migración) con `test` (ID 8, Autor). No consta quién la subió ni cuándo (entre el 31/10 y el 02/11). Marketing hizo con ella la segunda prueba de `post-create-wwwarcelona` (`../pruebas-automatizacion/`, solo leído): 10 borradores (2540–2549) con categoría, slug, extracto y Yoast, MD5 idénticos al HTML local, y programados con `update-post` (respuesta ligera, 10 llamadas en paralelo sin errores). La contraseña da 403 fuera del MCP y el servidor por defecto del adapter, 404.
-- **Versión 0.3.1 (02/11/2026, commit en local, sin tag, sin push ni subir al sitio; zip `~/Descargas/wp-connect-mcp-0.3.1.zip`):** la comprobación tras conectar pide preguntar a Claude con qué usuario está conectado, porque en la app de escritorio `/mcp` solo da el número de conexiones; y receta en el README para enviar el contenido desde un archivo sin pasarlo por el contexto. El servidor no cambia.
+- **Versión 0.3.1 (02/11/2026, commit `48cd761` enviado a `main` por Adrián, sin tag ni subir al sitio; zip `wp-connect-mcp-0.3.1.zip` en la raíz del repositorio):** la comprobación tras conectar pide preguntar a Claude con qué usuario está conectado, porque en la app de escritorio `/mcp` solo da el número de conexiones; y receta en el README para enviar el contenido desde un archivo sin pasarlo por el contexto. El servidor no cambia.
 - **Versión 0.3.0 (31/10/2026, commit y tag `v0.3.0` en local, sin push ni subir al sitio):** seguridad, alternativa A de [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md), aplicada a petición de Adrián.
   - La contraseña de la conexión solo vale para el MCP, y el MCP solo acepta contraseñas de la página.
   - Paquetes *Leer*, *Escribir* y *Papelera* por usuario, en la nueva *Usuarios → Acceso de Claude*.
@@ -29,7 +29,7 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 - [ ] **Entradas 2540–2549 del usuario `test` (segundo lote de marketing):** programadas del 06/11 al 04/12/2026, sin imagen destacada y con puntos «a verificar» sin confirmar (decisión de marketing). La primera sale el 06/11 a las 09:00. Decidir si se dejan publicar o se pasan a borrador o a la papelera.
 - [ ] Enviar el contenido sin pasarlo por el contexto (propuesta 1 de `../pruebas-automatizacion/modificaciones-wp-connect-mcp.md`): se resuelve con un script local en `post-create-wwwarcelona` (receta en el README, «Enviar el contenido desde un archivo»). Avisar a quien mantiene ese plugin; aquí no hay que cambiar el servidor.
-- [x] Commit de la 0.3.1 (mensajes de comprobación y receta del README), sin tag, y zip `~/Descargas/wp-connect-mcp-0.3.1.zip`. Hecho el 02/11/2026, sin push.
+- [x] Commit de la 0.3.1 (mensajes de comprobación y receta del README), sin tag, y zip `wp-connect-mcp-0.3.1.zip` (en la raíz del repositorio). Hecho el 02/11/2026; push hecho por Adrián el mismo día.
 - [ ] Subir la 0.3.1 al sitio de pruebas (solo cambian `wp-connect-mcp.php` e `includes/Admin/ConnectPage.php`) y comprobar el mensaje nuevo de la página. Probar el bloque de Windows (aquí no hay PowerShell).
 - [x] Commit de la 0.3.0, tag `v0.3.0` en local y zip `~/Descargas/wp-connect-mcp-0.3.0.zip`. Hecho el 31/10/2026, sin push.
 - [ ] (En parte: la 0.3.0 ya está en el sitio, comprobado el 02/11/2026; hechas las pruebas marcadas con ✔.) Subir la 0.3.0 al sitio de pruebas: ficheros nuevos `includes/Security/` (cuatro) e `includes/Admin/GrantsPage.php`; cambiados `wp-connect-mcp.php`, `includes/Plugin.php`, `includes/Admin/ConnectPage.php` y las nueve `includes/Abilities/*.php`; `vendor/` no cambia. Después, probar:
@@ -164,6 +164,7 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 
 | Fecha | Decisión | Motivo |
 |---|---|---|
+| 02/11/2026 | El zip de cada versión se genera siempre en la raíz del repositorio (`wp-connect-mcp-<versión>.zip`), excluido con `.gitignore`, y cada generación borra antes el anterior (solo queda el de la última versión). Sustituye a `~/Descargas` (decisión del 28/10). Los zips anteriores siguen en `~/Descargas` | Pedido por Adrián |
 | 02/11/2026 | Los cambios del 02/11 van en la versión 0.3.1, con zip y sin tag | Pedido por Adrián |
 | 02/11/2026 | Enviar el contenido sin pasarlo por el contexto de Claude con un script local del plugin de Claude, que llama a `create-post` y `update-post` con el contenido del archivo. No se añade al servidor `content_url` ni subida por partes | Por partes, el contenido sigue pasando por el contexto; desde una URL, el servidor descargaría direcciones ajenas (SSRF) y habría que alojar el archivo. La llamada normal ya sirve, y `content_hash` permite comprobar que ha llegado entero |
 | 02/11/2026 | Tras conectar, comprobar preguntando a Claude con qué usuario está conectado a WordPress (`get-current-user`), no solo con `/mcp` | En la app de escritorio, `/mcp` solo dice cuántas conexiones hay; la pregunta funciona en la app y en la terminal, y confirma además el usuario |
@@ -209,7 +210,8 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 - Comprobados en el sitio, solo lectura: paquetes de `test`, 403 de la contraseña fuera del MCP y 404 del servidor por defecto.
 - `ConnectPage.php` (página y los dos bloques) y README (pasos y los dos bloques): la comprobación final pide preguntar a Claude con qué usuario está conectado; `/mcp` queda para la terminal.
 - README: nueva receta «Enviar el contenido desde un archivo» en «Probar con curl».
-- Versión 0.3.1 con estos cambios (pedido de Adrián): commit en local sin tag y zip `~/Descargas/wp-connect-mcp-0.3.1.zip` generado desde el commit. Sin push.
+- Versión 0.3.1 con estos cambios (pedido de Adrián): commit sin tag y zip generado desde el commit. Push hecho por Adrián.
+- El zip de cada versión se genera ahora en la raíz del repositorio, excluido con `.gitignore` (AGENTS.md actualizado). Regenerado ahí el de la 0.3.1 desde `48cd761`. Cada generación borra antes el zip anterior (`rm -f wp-connect-mcp-*.zip` en el comando).
 ### 31/10/2026
 
 - Eliminado `notes/CONTINUACION_20261027.md`: todo lo que pedía está hecho o recogido. Plugin de skills: aparte (`post-create-wwwarcelona`). Abilities limitadas y otorgar o revocar por usuario: paquetes de la 0.3.0. Escalado: regla de paquetes en AGENTS.md. Seguridad, Chrome, Playwright, objeción de sistemas, n8n y control en skills frente a paneles: docs/ALTERNATIVAS.md y docs/INFORME-SEGURIDAD.md. Las decisiones que quedan están en Pendientes.
