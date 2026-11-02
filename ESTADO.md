@@ -4,13 +4,15 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Situación actual
 
+- **0.3.0 instalada y en uso en el sitio de pruebas (comprobado el 02/11/2026):** `get-current-user` devuelve `packages` (los tres, por la migración) con `test` (ID 8, Autor). No consta quién la subió ni cuándo (entre el 31/10 y el 02/11). Marketing hizo con ella la segunda prueba de `post-create-wwwarcelona` (`../pruebas-automatizacion/`, solo leído): 10 borradores (2540–2549) con categoría, slug, extracto y Yoast, MD5 idénticos al HTML local, y programados con `update-post` (respuesta ligera, 10 llamadas en paralelo sin errores). La contraseña da 403 fuera del MCP y el servidor por defecto del adapter, 404.
+- **Versión 0.3.1 (02/11/2026, commit en local, sin tag, sin push ni subir al sitio; zip `~/Descargas/wp-connect-mcp-0.3.1.zip`):** la comprobación tras conectar pide preguntar a Claude con qué usuario está conectado, porque en la app de escritorio `/mcp` solo da el número de conexiones; y receta en el README para enviar el contenido desde un archivo sin pasarlo por el contexto. El servidor no cambia.
 - **Versión 0.3.0 (31/10/2026, commit y tag `v0.3.0` en local, sin push ni subir al sitio):** seguridad, alternativa A de [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md), aplicada a petición de Adrián.
   - La contraseña de la conexión solo vale para el MCP, y el MCP solo acepta contraseñas de la página.
   - Paquetes *Leer*, *Escribir* y *Papelera* por usuario, en la nueva *Usuarios → Acceso de Claude*.
   - Registro de uso, límite por hora y servidor MCP por defecto del adapter desactivado.
   - Arreglos de la revisión de seguridad del mismo día.
 
-  Probada fuera de WordPress: simulación de 34 comprobaciones y bloques de terminal con servidor local. **Falta probarla en el sitio de pruebas; hasta entonces, no usar en producción.**
+  Probada fuera de WordPress: simulación de 34 comprobaciones y bloques de terminal con servidor local. En el sitio de pruebas desde el 02/11/2026 (ver arriba); faltan las pruebas de rechazo de la lista de pendientes antes de usarla en producción.
 - **Versión 0.2.2 (31/10/2026, commit y tag `v0.2.2` en local, sin push ni subir al sitio):** versión 0.2.2 con los cambios pedidos tras la prueba de marketing (`../pruebas-automatizacion/modificaciones-wp-connect-mcp.md`, que no se ha modificado). Cambios: `get-template-status` sin falsos negativos y con la lista `templates`; `create-post` y `update-post` responden sin el contenido (`return_content` para pedirlo); y la página de conexión con la contraseña aparte, un bloque por sistema en pestañas, el usuario y el rol destacados y una casilla de confirmación. Probada fuera de WordPress; falta subirla y probarla en el sitio de pruebas.
 - **0.2.1 instalada en el sitio de pruebas (30/10/2026):** la instaló marketing durante la prueba del plugin de Claude `post-create-wwwarcelona`, guiada paso a paso. Conexión `wp-connect-mcp-` + dominio de pruebas con el usuario `test` (ID 8, Autor; confirmado con `get-current-user` el 31/10). Con ella se subieron y programaron 10 entradas reales (2519–2528), que se publicarán solas del 03/11 al 07/12/2026.
 - **Desarrollo 29/10/2026 (terminado en local, sin subir):** versión 0.2.1 con los requisitos de `post-create-wwwarcelona/docs/requisitos-wp-connect-mcp.md`: nueve tools en total, con categorías, usuario conectado, estado de plantillas, slug, Yoast, subida de imágenes/imagen destacada y filtro por categoría. El repositorio `post-create-wwwarcelona` se usó solo como referencia y no se modificó.
@@ -25,14 +27,18 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Pendientes
 
+- [ ] **Entradas 2540–2549 del usuario `test` (segundo lote de marketing):** programadas del 06/11 al 04/12/2026, sin imagen destacada y con puntos «a verificar» sin confirmar (decisión de marketing). La primera sale el 06/11 a las 09:00. Decidir si se dejan publicar o se pasan a borrador o a la papelera.
+- [ ] Enviar el contenido sin pasarlo por el contexto (propuesta 1 de `../pruebas-automatizacion/modificaciones-wp-connect-mcp.md`): se resuelve con un script local en `post-create-wwwarcelona` (receta en el README, «Enviar el contenido desde un archivo»). Avisar a quien mantiene ese plugin; aquí no hay que cambiar el servidor.
+- [x] Commit de la 0.3.1 (mensajes de comprobación y receta del README), sin tag, y zip `~/Descargas/wp-connect-mcp-0.3.1.zip`. Hecho el 02/11/2026, sin push.
+- [ ] Subir la 0.3.1 al sitio de pruebas (solo cambian `wp-connect-mcp.php` e `includes/Admin/ConnectPage.php`) y comprobar el mensaje nuevo de la página. Probar el bloque de Windows (aquí no hay PowerShell).
 - [x] Commit de la 0.3.0, tag `v0.3.0` en local y zip `~/Descargas/wp-connect-mcp-0.3.0.zip`. Hecho el 31/10/2026, sin push.
-- [ ] Subir la 0.3.0 al sitio de pruebas: ficheros nuevos `includes/Security/` (cuatro) e `includes/Admin/GrantsPage.php`; cambiados `wp-connect-mcp.php`, `includes/Plugin.php`, `includes/Admin/ConnectPage.php` y las nueve `includes/Abilities/*.php`; `vendor/` no cambia. Después, probar:
-  - el usuario `test` (ID 8) recibe los tres paquetes por la migración y su conexión sigue funcionando;
-  - con su contraseña, `wp/v2/users/me` da 403 `wp_connect_mcp_password_scope` y el MCP funciona;
+- [ ] (En parte: la 0.3.0 ya está en el sitio, comprobado el 02/11/2026; hechas las pruebas marcadas con ✔.) Subir la 0.3.0 al sitio de pruebas: ficheros nuevos `includes/Security/` (cuatro) e `includes/Admin/GrantsPage.php`; cambiados `wp-connect-mcp.php`, `includes/Plugin.php`, `includes/Admin/ConnectPage.php` y las nueve `includes/Abilities/*.php`; `vendor/` no cambia. Después, probar:
+  - ✔ el usuario `test` (ID 8) recibe los tres paquetes por la migración y su conexión sigue funcionando;
+  - ✔ con su contraseña, `wp/v2/users/me` da 403 `wp_connect_mcp_password_scope` y el MCP funciona;
   - una contraseña creada a mano da 403 en el MCP;
   - solo *Leer*: `tools/list` con cinco herramientas, y `create-post` da `Permission denied`;
   - quitar todos los paquetes revoca la conexión, y el registro lo muestra;
-  - `/wp-json/mcp/mcp-adapter-default-server` da 404;
+  - ✔ `/wp-json/mcp/mcp-adapter-default-server` da 404 (sin credencial; con la de la conexión, 403 `wp_connect_mcp_password_scope`);
   - en la página, sin paquetes no hay botón, y la casilla «Revocar mis conexiones anteriores» funciona;
   - `upload-media` con una imagen de más de 40 megapíxeles da error.
 - [ ] Antes de subir la 0.3.0 a un sitio con Novamira: decidir si se mantiene su servidor (`add_filter('wp_connect_mcp_keep_default_server', '__return_true');` en un mu-plugin). Si no, Novamira deja de funcionar en ese sitio.
@@ -43,14 +49,14 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
   - **`tags` crea etiquetas nuevas:** con un Autor o Colaborador, más de lo que permite `wp/v2/tags`. Decidir si se exige `manage_categories` o se usan solo las existentes.
   - **Caducidad de las contraseñas:** valorar revocar automáticamente las que lleven N días sin usarse (cron con `last_used`).
 - [x] Alternativa A (v0.3): limitar las contraseñas del plugin a `/wp-connect-mcp/mcp`, paquetes de funciones por usuario, registro de uso y límite de volumen. Hecho en local el 31/10/2026 (0.3.0), a falta de probarlo en el sitio.
-- [ ] Subir la 0.2.2 al sitio de pruebas (ficheros cambiados: `wp-connect-mcp.php`, `includes/Admin/ConnectPage.php`, `includes/Abilities/GetTemplateStatus.php`, `CreatePost.php`, `UpdatePost.php` e `includes/Support/PostFormatter.php`) y probar:
+- [ ] (En parte: la 0.2.2 va dentro de la 0.3.0 instalada; el 02/11/2026 marketing comprobó `archive.exists: true` con la 2516, `content_hash` igual al MD5 del HTML local en 10 entradas y la respuesta ligera de `update-post`. Faltan `return_content: true` y la revisión de la página.) Subir la 0.2.2 al sitio de pruebas (ficheros cambiados: `wp-connect-mcp.php`, `includes/Admin/ConnectPage.php`, `includes/Abilities/GetTemplateStatus.php`, `CreatePost.php`, `UpdatePost.php` e `includes/Support/PostFormatter.php`) y probar:
   - `get-template-status`: `archive.exists: true` con la 2516 y sus condiciones en `templates`;
   - `create-post` de un borrador de prueba: sin `content`, con `content_hash` igual al MD5 enviado, y con `return_content: true`;
   - `update-post` solo con `scheduled_date`: respuesta ligera;
   - la página: casilla obligatoria, usuario y rol, aviso con un Editor, pestañas y conexión creada con el bloque de Mac y Linux.
 - [ ] Probar los bloques de la página de conexión en Windows (PowerShell 5.1 y 7) y en un Mac (zsh). El de Mac y Linux está probado en Linux fuera de WordPress; el de Windows, sin probar (aquí no hay PowerShell).
 - [x] Commit de la 0.2.2, tag `v0.2.2` en local y zip `~/Descargas/wp-connect-mcp-0.2.2.zip`. Hecho el 31/10/2026, sin push.
-- [ ] Entradas 2519–2528 del usuario `test` (lote de prueba de marketing): programadas del 03/11 al 07/12/2026, sin imagen destacada. Decidir si se dejan publicar o se envían a la papelera.
+- [x] Entradas 2519–2528 del usuario `test` (lote de prueba de marketing): el 02/11/2026 `list-posts` dio 0 entradas propias, así que ya no están (no consta quién las retiró).
 - [ ] Probar en el sitio `upload-media` y `featured_image`, que la prueba de marketing no llegó a usar.
 - [x] Crear el commit de la 0.2.1 y generar `~/Descargas/wp-connect-mcp-0.2.1.zip` desde él. Hecho el 29/10/2026.
 - [x] Implementar y verificar localmente categorías, campos Yoast, slug, subida de imágenes/imagen destacada, usuario actual, estado de plantillas y filtro de entradas por categoría. Hecho el 29/10/2026; falta la prueba integrada en WordPress.
@@ -103,6 +109,9 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
+| 02/11/2026 | Bloques de Mac y Linux (página y README) tras cambiar el mensaje final, con servidor local (`php -S`) y `claude` simulado, respuestas por tubería. Receta «Enviar el contenido desde un archivo» del README contra un servidor local que imita `create-post` | ✅ Correcta guarda la conexión con el mensaje nuevo; vacía, incorrecta (401), sitio sin plugin, sin conexión, sin `claude` y «no sustituir» fallan como antes sin guardar nada. La receta da «idéntico» y, si el servidor cambia el HTML, «DISTINTO». Bloque de Windows sin probar |
+| 02/11/2026 | 0.3.0 en el sitio, con la conexión de Claude Code de `test` (ID 8, Autor, confirmado con `get-current-user`): `get-current-user`; `wp/v2/users/me` y `/wp-json/mcp/mcp-adapter-default-server` con su contraseña (leída de `~/.claude.json` dentro de `php -r`, sin mostrarla); el servidor por defecto sin credencial | ✅ `packages` con los tres paquetes; `wp/v2/users/me` y el servidor por defecto, 403 `wp_connect_mcp_password_scope`; sin credencial, el servidor por defecto da 404 `rest_no_route` |
+| 02/11/2026 | Segunda prueba de marketing con `post-create-wwwarcelona` (notas en `../pruebas-automatizacion/aprendizaje-plugin.md`), con `test` (ID 8, Autor, confirmado con `get-current-user`): `get-template-status`, `create-post` de 10 borradores con categoría, slug, extracto y Yoast, `update-post` solo con `scheduled_date` (10 en paralelo) y `list-posts` con `future` | ✅ Plantilla de Archivo 2516 detectada (`covers_blog: true`); 10 borradores (2540–2549) con `content_hash` igual al MD5 del HTML local; los 10 en `future` y respuestas sin el contenido. En la app de escritorio, `/mcp` solo dice «4 connected», sin nombres |
 | 31/10/2026 | 0.3.0 fuera de WordPress (sin sitio ni usuario real). Simulación con funciones de WordPress sustituidas: paquetes, `Guard::protect()`, límite por hora, registro, filtro de `tools/list`, revocación, alcance de la contraseña por ruta y XML-RPC, y migración | ✅ 34 de 34. La contraseña del plugin da 403 en `/wp/v2/posts`, `/wp/v2/users/me`, `/batch/v1`, `/` y rutas parecidas (`/wp-connect-mcp/mcpx`); el MCP pasa; la contraseña manual no se toca fuera del MCP y no entra en él |
 | 31/10/2026 | Bloques de Mac y Linux (página y README) con servidor local (`php -S`) y `claude` simulado, respuestas por tubería | ✅ Contraseña correcta: guarda la conexión. Incorrecta (401), sin acceso (403), sitio sin plugin y `http://` externo: mensaje claro y no guarda nada. `curl` recibe la contraseña por la entrada estándar. Bloques de Windows sin probar (aquí no hay PowerShell) |
 | 31/10/2026 | 0.2.2 fuera de WordPress: `php -l`; cobertura de condiciones de `get-template-status` (16 casos: `include/archive`, categoría con ID, autor, búsqueda, `exclude/archive`, `include/singular`, entrada concreta…); `PostFormatter::saved()` con y sin contenido; página de conexión generada simulando WordPress (inicio, sin casilla, administrador, conexión creada); bloque de Mac y Linux con las respuestas por tubería, un servidor local (`php -S`) y un `claude` simulado | ✅ Todo como se esperaba. Los comandos no contienen la contraseña. Bloque: contraseña vacía, incorrecta (401), sitio sin plugin (404), sin conexión y sin `claude` fallan con su mensaje y no guardan nada; contraseña con espacios correcta → `claude mcp add` con la cabecera esperada; si la conexión existe pregunta, y con «n» no cambia nada. Bloque de Windows sin probar |
@@ -155,6 +164,9 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 
 | Fecha | Decisión | Motivo |
 |---|---|---|
+| 02/11/2026 | Los cambios del 02/11 van en la versión 0.3.1, con zip y sin tag | Pedido por Adrián |
+| 02/11/2026 | Enviar el contenido sin pasarlo por el contexto de Claude con un script local del plugin de Claude, que llama a `create-post` y `update-post` con el contenido del archivo. No se añade al servidor `content_url` ni subida por partes | Por partes, el contenido sigue pasando por el contexto; desde una URL, el servidor descargaría direcciones ajenas (SSRF) y habría que alojar el archivo. La llamada normal ya sirve, y `content_hash` permite comprobar que ha llegado entero |
+| 02/11/2026 | Tras conectar, comprobar preguntando a Claude con qué usuario está conectado a WordPress (`get-current-user`), no solo con `/mcp` | En la app de escritorio, `/mcp` solo dice cuántas conexiones hay; la pregunta funciona en la app y en la terminal, y confirma además el usuario |
 | 31/10/2026 | No escribir el dominio del sitio de pruebas en el repositorio: «el sitio de pruebas» y, en nombres de conexión, «dominio de pruebas» | El repositorio remoto es público |
 | 31/10/2026 | Aplicar la alternativa A sin esperar a la reunión (petición de Adrián): contraseña limitada al MCP, MCP solo con contraseñas de la página, paquetes *Leer*, *Escribir* y *Papelera* por usuario (en `user_meta`, sin capacidades ni roles nuevos), registro en una opción (no en `debug.log`) y límite por hora | Cerrar el agujero de `wp/v2` antes de seguir. Los paquetes van en el servidor porque las skills se pueden saltar. Tres paquetes para poder negar la papelera; se pueden agrupar si se decide uno por plugin de skills |
 | 31/10/2026 | Migración: quien ya tenía una conexión de la página recibe los tres paquetes, una sola vez | Para no cortar la conexión de marketing (`test`, ID 8) al actualizar. Queda en el registro como «(sistema)» |
@@ -191,6 +203,13 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 
 ## Historial
 
+### 02/11/2026
+
+- Leídas las notas de la segunda prueba de marketing (`../pruebas-automatizacion/`, sin modificar). Lo que toca a este plugin: confirmado que la 0.3.0 está en el sitio y funciona; propuesta de enviar el contenido sin pasarlo por el contexto; en la app de escritorio `/mcp` no lista las conexiones.
+- Comprobados en el sitio, solo lectura: paquetes de `test`, 403 de la contraseña fuera del MCP y 404 del servidor por defecto.
+- `ConnectPage.php` (página y los dos bloques) y README (pasos y los dos bloques): la comprobación final pide preguntar a Claude con qué usuario está conectado; `/mcp` queda para la terminal.
+- README: nueva receta «Enviar el contenido desde un archivo» en «Probar con curl».
+- Versión 0.3.1 con estos cambios (pedido de Adrián): commit en local sin tag y zip `~/Descargas/wp-connect-mcp-0.3.1.zip` generado desde el commit. Sin push.
 ### 31/10/2026
 
 - Eliminado `notes/CONTINUACION_20261027.md`: todo lo que pedía está hecho o recogido. Plugin de skills: aparte (`post-create-wwwarcelona`). Abilities limitadas y otorgar o revocar por usuario: paquetes de la 0.3.0. Escalado: regla de paquetes en AGENTS.md. Seguridad, Chrome, Playwright, objeción de sistemas, n8n y control en skills frente a paneles: docs/ALTERNATIVAS.md y docs/INFORME-SEGURIDAD.md. Las decisiones que quedan están en Pendientes.

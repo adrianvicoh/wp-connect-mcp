@@ -2,6 +2,13 @@
 
 Cambios por versión publicada. El día a día (pruebas, decisiones, pendientes) está en [ESTADO.md](ESTADO.md).
 
+## 0.3.1 (sin publicar)
+
+Cambios tras la segunda prueba con el plugin de Claude `post-create-wwwarcelona` (02/11/2026).
+
+- **Comprobar la conexión:** la página *Conectar con Claude*, sus dos bloques y los del README ya no dicen solo «escribe /mcp». Ahora piden preguntar a Claude con qué usuario está conectado a WordPress, porque en la app de escritorio `/mcp` solo dice cuántas conexiones hay. En la terminal, `/mcp` sigue sirviendo.
+- **README:** nueva receta «Enviar el contenido desde un archivo» (en «Probar con curl»), para que un script local suba el contenido sin pasarlo por el contexto de Claude y lo compare con `content_hash`.
+
 ## 0.3.0 (sin publicar)
 
 Seguridad: aplica la alternativa A de [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md). Probada fuera de WordPress; falta probarla en el sitio antes de usarla en producción.

@@ -144,7 +144,7 @@ Para cualquier persona, también si no es informática. No hay que saber el usua
 3. Elegir la pestaña del sistema (*Mac y Linux* o *Windows (PowerShell)*; se abre sola la del equipo) y pulsar **Copiar** en el comando.
 4. Abrir la terminal (Mac: *Terminal*; Windows: *PowerShell*; Linux: *Terminal*), pegar el comando y pulsar Intro.
 5. Cuando el comando la pida, copiar la **contraseña de aplicación** de la página con su botón **Copiar** y pegarla en la terminal (no se ve mientras se pega). No pegarla nunca en un chat, tampoco en el de Claude.
-6. Abrir una sesión nueva de Claude Code y escribir `/mcp`: el sitio debe aparecer conectado, con las herramientas de sus paquetes (9 con los tres).
+6. Abrir una sesión nueva de Claude Code (las que ya estaban abiertas no ven el sitio) y preguntarle «¿Con qué usuario estás conectado a WordPress?»: debe decir el usuario de la conexión. En la terminal, `/mcp` también muestra el sitio conectado, con las herramientas de sus paquetes (9 con los tres); en la app de escritorio, `/mcp` solo dice cuántas conexiones hay.
 
 Si el usuario no tiene ningún paquete, la página lo dice y no ofrece el botón: hay que pedir acceso a un administrador.
 
@@ -181,7 +181,7 @@ No hay que descargar nada: se copia el bloque entero, se pega en la terminal y s
 
 Antes de guardar nada comprueba, contra el propio MCP, que el usuario y la contraseña son correctos, que el usuario tiene acceso y que el sitio tiene el plugin activo. Si algo falla, explica en lenguaje claro qué revisar. Si el sitio ya estaba conectado, pregunta antes de sustituir la conexión. La contraseña no queda en el historial de la terminal.
 
-Al terminar, el sitio queda conectado como `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`). Después hay que abrir una sesión nueva de Claude Code y comprobar con `/mcp` que aparece conectado, con las herramientas de sus paquetes.
+Al terminar, el sitio queda conectado como `wp-connect-mcp-` más el dominio con guiones (por ejemplo, `wp-connect-mcp-example-com`). Después hay que abrir una sesión nueva de Claude Code y preguntarle con qué usuario está conectado a WordPress (en la terminal, `/mcp` también lo muestra, con las herramientas de sus paquetes).
 
 #### Linux y macOS (Terminal)
 
@@ -242,7 +242,8 @@ claude mcp add --transport http --scope user "$NAME" "$MCP" --header "Authorizat
 echo
 echo "✅ Listo. «${SITE_NAME:-$HOST}» está conectado en Claude Code como «$NAME»."
 echo "   1. Abre una sesión nueva de Claude Code (las que ya estaban abiertas no lo verán)."
-echo "   2. Escribe /mcp y comprueba que aparece «$NAME» como conectado."
+echo "   2. Pregúntale: «¿Con qué usuario estás conectado a WordPress?». Debe decir $WP_USER."
+echo "      (En la terminal, /mcp también muestra «$NAME» como conectado; en la app de escritorio, no.)"
 echo "   3. Pídele, por ejemplo: «Lista las últimas entradas de $HOST»."
 EOF
 ```
@@ -308,7 +309,8 @@ Abrir **PowerShell** (no «Símbolo del sistema»), pegar el bloque entero y pul
   Write-Host ""
   Write-Host "Listo. «$siteName» está conectado en Claude Code como «$name»." -ForegroundColor Green
   Write-Host "   1. Abre una sesión nueva de Claude Code (las que ya estaban abiertas no lo verán)."
-  Write-Host "   2. Escribe /mcp y comprueba que aparece «$name» como conectado."
+  Write-Host "   2. Pregúntale: «¿Con qué usuario estás conectado a WordPress?». Debe decir $user."
+  Write-Host "      (En la terminal, /mcp también muestra «$name» como conectado; en la app de escritorio, no.)"
   Write-Host "   3. Pídele, por ejemplo: «Lista las últimas entradas de $siteHost»."
 }
 ```
@@ -430,6 +432,29 @@ WHEN=$(date -d '+10 minutes' +%Y-%m-%dT%H:%M:%S%:z)
 mcp_call wp-connect-mcp-update-post '{"id":123,"scheduled_date":"'"$WHEN"'"}' # debe dar OK ... future
 mcp_call wp-connect-mcp-trash-post '{"id":123}'                                # debe dar OK 123 trash
 ```
+
+#### Enviar el contenido desde un archivo
+
+Cuando el contenido ya está en un archivo (por ejemplo, el HTML de un post redactado por Claude), un script local puede enviarlo al MCP sin que Claude tenga que leerlo y volver a escribirlo en la llamada: en un lote de 10 posts, eso son unos 220 KB menos de contexto. El servidor no necesita nada especial: es una llamada `tools/call` normal, con la misma sesión. Aquí, con la sesión abierta (pasos 1 y 2), se crea un borrador:
+
+```bash
+read -r -p "Archivo con el contenido (HTML): " FILE
+read -r -p "Título: " TITLE
+php -r 'echo json_encode(["jsonrpc" => "2.0", "id" => 4, "method" => "tools/call", "params" => ["name" => "wp-connect-mcp-create-post",
+  "arguments" => ["title" => $argv[2], "content" => file_get_contents($argv[1]), "status" => "draft"]]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);' \
+  "$FILE" "$TITLE" > peticion.json
+curl -sS "$MCP" -K <(auth) \
+  -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+  -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
+  --data-binary @peticion.json \
+  | php -r '$r = json_decode(stream_get_contents(STDIN), true); $p = $r["result"]["structuredContent"] ?? null;
+    if (!$p) { echo "ERROR: ", json_encode($r["result"]["content"][0]["text"] ?? $r["error"] ?? $r, JSON_UNESCAPED_UNICODE), PHP_EOL; exit(1); }
+    echo "OK: ", $p["id"], " ", $p["status"], " · contenido ", $p["content_hash"] === md5_file($argv[1]) ? "idéntico" : "DISTINTO del archivo (revisar con get-post)", PHP_EOL;' "$FILE"
+rm -f peticion.json
+```
+
+- **Comprobar que ha llegado entero:** la respuesta trae `content_hash` (MD5 del contenido guardado), que se compara con el del archivo. Si no coincide, WordPress lo ha cambiado al guardarlo (por ejemplo, filtra el HTML de los roles sin `unfiltered_html`, como Autor o Colaborador) y conviene revisarlo con `get-post`.
+- **Credencial:** un script para el agente puede tomar la cabecera `Authorization` de la conexión guardada en `~/.claude.json` (`mcpServers` → nombre de la conexión → `headers`), sin mostrarla ni pasarla como argumento de `curl`. Los límites del servidor (paquetes, solo entradas propias, límite por hora) se aplican igual; lo que se salta es el permiso que Claude Code pide antes de cada herramienta, así que el script debe ejecutarse solo con el visto bueno de la persona.
 
 Los errores de las herramientas llegan dentro de `result`, con `isError: true` y el mensaje en `content[0].text`. Los rechazos por esquema (estado no permitido, campo desconocido) llegan con el texto de WordPress «tiene una entrada no válida».
 

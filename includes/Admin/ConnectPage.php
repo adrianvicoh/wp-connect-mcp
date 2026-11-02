@@ -71,7 +71,8 @@ claude mcp add --transport http --scope user "$NAME" "$MCP" --header "Authorizat
 echo
 echo "✅ Listo. $SITE está conectado en Claude Code como «$NAME»."
 echo "   1. Abre una sesión nueva de Claude Code (las que ya estaban abiertas no lo verán)."
-echo "   2. Escribe /mcp y comprueba que aparece «$NAME» como conectado."
+echo "   2. Pregúntale: «¿Con qué usuario estás conectado a WordPress?». Debe decir $WP_USER."
+echo "      (En la terminal, /mcp también muestra «$NAME» como conectado; en la app de escritorio, no.)"
 EOF
 BASH;
 
@@ -117,7 +118,8 @@ BASH;
   Write-Host ""
   Write-Host "Listo. $site está conectado en Claude Code como «$name»." -ForegroundColor Green
   Write-Host "   1. Abre una sesión nueva de Claude Code (las que ya estaban abiertas no lo verán)."
-  Write-Host "   2. Escribe /mcp y comprueba que aparece «$name» como conectado."
+  Write-Host "   2. Pregúntale: «¿Con qué usuario estás conectado a WordPress?». Debe decir $user."
+  Write-Host "      (En la terminal, /mcp también muestra «$name» como conectado; en la app de escritorio, no.)"
 }
 POWERSHELL;
 
@@ -245,7 +247,7 @@ POWERSHELL;
         echo '<li>' . esc_html__('Copia el comando de tu sistema (Mac y Linux, o Windows) con su botón «Copiar».', 'wp-connect-mcp') . '</li>';
         echo '<li>' . esc_html__('Abre la terminal: en Mac, «Terminal»; en Windows, «PowerShell»; en Linux, «Terminal». Pega el comando y pulsa Intro.', 'wp-connect-mcp') . '</li>';
         echo '<li>' . esc_html__('Cuando el comando te la pida, copia la contraseña de aplicación de esta página y pégala en la terminal.', 'wp-connect-mcp') . '</li>';
-        echo '<li>' . esc_html__('Al terminar, abre una sesión nueva de Claude Code (las que ya estaban abiertas no verán el sitio) y escribe /mcp para comprobar que aparece conectado.', 'wp-connect-mcp') . '</li>';
+        echo '<li>' . esc_html__('Al terminar, abre una sesión nueva de Claude Code (las que ya estaban abiertas no verán el sitio) y pregúntale con qué usuario está conectado a WordPress: debe decir el tuyo.', 'wp-connect-mcp') . '</li>';
         echo '</ol>';
 
         self::renderUserBox($user);
@@ -345,7 +347,7 @@ POWERSHELL;
         echo esc_html__('Pégala solo cuando la terminal muestre la pregunta; si el comando se detiene antes con un error, no la pegues. No se ve mientras la pegas: es normal. Se muestra una sola vez; si la pierdes, crea otra conexión. Si crees que alguien la ha visto, revoca la conexión abajo, en tu perfil.', 'wp-connect-mcp') . '</p>';
 
         echo '<h2>' . esc_html__('4. Comprueba la conexión', 'wp-connect-mcp') . '</h2>';
-        echo '<p>' . esc_html__('Abre una sesión nueva de Claude Code y escribe /mcp: debe aparecer como conectado:', 'wp-connect-mcp') . ' <code>' . esc_html($result['server']) . '</code></p>';
+        echo '<p>' . esc_html__('Abre una sesión nueva de Claude Code (las que ya estaban abiertas no verán el sitio) y pregúntale: «¿Con qué usuario estás conectado a WordPress?». Debe decir el tuyo. En la terminal, /mcp también muestra la conexión:', 'wp-connect-mcp') . ' <code>' . esc_html($result['server']) . '</code>. ' . esc_html__('En la app de escritorio, /mcp solo dice cuántas conexiones hay.', 'wp-connect-mcp') . '</p>';
         echo '</div>';
     }
 
