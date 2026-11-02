@@ -9,6 +9,7 @@ use WpConnectMcp\Abilities\GetPost;
 use WpConnectMcp\Abilities\GetTemplateStatus;
 use WpConnectMcp\Abilities\ListCategories;
 use WpConnectMcp\Abilities\ListPosts;
+use WpConnectMcp\Abilities\SchedulePosts;
 use WpConnectMcp\Abilities\TrashPost;
 use WpConnectMcp\Abilities\UpdatePost;
 use WpConnectMcp\Abilities\UploadMedia;
@@ -49,6 +50,7 @@ final class Grants
             'abilities' => [
                 CreatePost::NAME,
                 UpdatePost::NAME,
+                SchedulePosts::NAME,
                 UploadMedia::NAME,
             ],
         ],

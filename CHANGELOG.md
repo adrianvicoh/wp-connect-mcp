@@ -2,6 +2,15 @@
 
 Cambios por versión publicada. El día a día (pruebas, decisiones, pendientes) está en [ESTADO.md](ESTADO.md).
 
+## 0.4.0 (sin publicar)
+
+Cambios tras la tercera prueba con el plugin de Claude `post-create-wwwarcelona` (02/11/2026), en la que CrowdSec bloqueó la IP tras 10 `update-post` en paralelo.
+
+- **Nueva herramienta `schedule-posts`** (paquete *Escribir*, ampliado): programa hasta 20 entradas propias en una sola llamada, cada una con su fecha. Valida todas antes de cambiar nada: si una no es propia, no existe, tiene una fecha pasada o está repetida, no programa ninguna y dice cuál falla. Exige `publish_posts` (Autor o superior). Responde con un resumen por entrada, sin contenido.
+- **Límite por hora:** `schedule-posts` tiene su propio límite de 120, y cuenta cada entrada del lote, no cada llamada.
+- **Descripción del servidor MCP y de `update-post`:** indican al agente que use `schedule-posts` para programar varias entradas y que no lance muchas llamadas en paralelo.
+- **README:** cómo reconocer un bloqueo del cortafuegos (la respuesta es una página HTML) y qué hacer. El plugin no puede cambiar esa respuesta, porque no llega a WordPress.
+
 ## 0.3.1 (sin publicar)
 
 Cambios tras la segunda prueba con el plugin de Claude `post-create-wwwarcelona` (02/11/2026).

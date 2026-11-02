@@ -14,6 +14,7 @@ use WpConnectMcp\Abilities\GetCurrentUser;
 use WpConnectMcp\Abilities\GetTemplateStatus;
 use WpConnectMcp\Abilities\ListCategories;
 use WpConnectMcp\Abilities\ListPosts;
+use WpConnectMcp\Abilities\SchedulePosts;
 use WpConnectMcp\Abilities\TrashPost;
 use WpConnectMcp\Abilities\UpdatePost;
 use WpConnectMcp\Abilities\UploadMedia;
@@ -43,6 +44,7 @@ final class Plugin
         GetTemplateStatus::class,
         CreatePost::class,
         UpdatePost::class,
+        SchedulePosts::class,
         UploadMedia::class,
         TrashPost::class,
     ];
@@ -92,7 +94,7 @@ final class Plugin
             self::ROUTE_NAMESPACE,
             self::ROUTE,
             'WP Connect MCP',
-            'Leer entradas y categorías; crear, editar, programar, publicar, subir imágenes y enviar a la papelera solo contenido propio.',
+            'Leer entradas y categorías; crear, editar, programar, publicar, subir imágenes y enviar a la papelera solo contenido propio. Para programar varias entradas, usar schedule-posts en una sola llamada y no lanzar muchas llamadas en paralelo: el cortafuegos del sitio puede bloquear la IP.',
             'v' . WP_CONNECT_MCP_VERSION,
             [HttpTransport::class],
             ErrorLogMcpErrorHandler::class,

@@ -6,6 +6,7 @@ use WP\MCP\Core\McpServer;
 use WP\MCP\Domain\Utils\McpNameSanitizer;
 use WP_Error;
 use WpConnectMcp\Abilities\CreatePost;
+use WpConnectMcp\Abilities\SchedulePosts;
 use WpConnectMcp\Abilities\TrashPost;
 use WpConnectMcp\Abilities\UpdatePost;
 use WpConnectMcp\Abilities\UploadMedia;
@@ -21,10 +22,12 @@ final class Guard
 {
     /**
      * Máximo de ejecuciones por usuario y hora de las abilities que escriben. Filtro: wp_connect_mcp_rate_limits.
+     * En schedule-posts cuenta cada entrada del lote, no cada llamada.
      */
     private const RATE_LIMITS = [
         CreatePost::NAME => 30,
         UpdatePost::NAME => 120,
+        SchedulePosts::NAME => 120,
         UploadMedia::NAME => 60,
         TrashPost::NAME => 30,
     ];
@@ -42,13 +45,13 @@ final class Guard
             $userId = get_current_user_id();
 
             if (!Grants::allows($ability, $userId)) {
-                AuditLog::add($userId, $ability, self::target($params[0] ?? null), 'denied: sin paquete');
+                AuditLog::add($userId, $ability, self::target($ability, $params[0] ?? null), 'denied: sin paquete');
                 return false;
             }
 
-            $limited = self::rateLimited($ability, $userId);
+            $limited = self::rateLimited($ability, $userId, self::units($ability, $params[0] ?? null));
             if ($limited) {
-                AuditLog::add($userId, $ability, self::target($params[0] ?? null), 'denied: límite por hora');
+                AuditLog::add($userId, $ability, self::target($ability, $params[0] ?? null), 'denied: límite por hora');
                 return $limited;
             }
 
@@ -60,12 +63,18 @@ final class Guard
             $userId = get_current_user_id();
 
             if (is_wp_error($result)) {
-                AuditLog::add($userId, $ability, self::target($params[0] ?? null), 'error: ' . $result->get_error_code());
+                AuditLog::add($userId, $ability, self::target($ability, $params[0] ?? null), 'error: ' . $result->get_error_code());
                 return $result;
             }
 
-            self::count($ability, $userId);
-            AuditLog::add($userId, $ability, self::target(is_array($result) ? $result : ($params[0] ?? null)));
+            self::count($ability, $userId, self::units($ability, $params[0] ?? null));
+            $failed = is_array($result) ? count((array) ($result['failed'] ?? [])) : 0;
+            AuditLog::add(
+                $userId,
+                $ability,
+                self::target($ability, is_array($result) ? $result : ($params[0] ?? null)),
+                $failed ? sprintf('ok, %d sin guardar', $failed) : 'ok'
+            );
 
             return $result;
         };
@@ -110,12 +119,12 @@ final class Guard
     /**
      * @return WP_Error|null
      */
-    private static function rateLimited(string $ability, int $userId)
+    private static function rateLimited(string $ability, int $userId, int $units)
     {
         $limits = (array) apply_filters('wp_connect_mcp_rate_limits', self::RATE_LIMITS);
         $limit = (int) ($limits[$ability] ?? 0);
 
-        if ($limit <= 0 || (int) get_transient(self::counterKey($ability, $userId)) < $limit) {
+        if ($limit <= 0 || (int) get_transient(self::counterKey($ability, $userId)) + $units <= $limit) {
             return null;
         }
 
@@ -126,14 +135,28 @@ final class Guard
         );
     }
 
-    private static function count(string $ability, int $userId): void
+    private static function count(string $ability, int $userId, int $units): void
     {
         if (!isset(self::RATE_LIMITS[$ability])) {
             return;
         }
 
         $key = self::counterKey($ability, $userId);
-        set_transient($key, (int) get_transient($key) + 1, HOUR_IN_SECONDS);
+        set_transient($key, (int) get_transient($key) + $units, HOUR_IN_SECONDS);
+    }
+
+    /**
+     * Usos que consume una llamada: uno, o uno por entrada en schedule-posts.
+     *
+     * @param mixed $input
+     */
+    private static function units(string $ability, $input): int
+    {
+        if (SchedulePosts::NAME !== $ability) {
+            return 1;
+        }
+
+        return max(1, count(SchedulePosts::ids(is_array($input) ? $input : null)));
     }
 
     private static function counterKey(string $ability, int $userId): string
@@ -144,9 +167,17 @@ final class Guard
     /**
      * @param mixed $data Entrada o resultado de la ability.
      */
-    private static function target($data): string
+    private static function target(string $ability, $data): string
     {
         $data = (array) $data;
+
+        // Solo schedule-posts: list-posts también devuelve «posts», y no se anotan los IDs listados.
+        if (SchedulePosts::NAME === $ability) {
+            return implode(',', array_unique(array_merge(
+                SchedulePosts::ids($data),
+                array_map('intval', array_column((array) ($data['failed'] ?? []), 'id'))
+            )));
+        }
 
         foreach (['id', 'post_id'] as $key) {
             if (isset($data[$key]) && is_scalar($data[$key])) {

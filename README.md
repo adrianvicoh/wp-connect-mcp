@@ -13,6 +13,7 @@ Plugin de WordPress que expone un servidor MCP propio para que Claude u otros ag
 | `wp-connect-mcp-get-template-status` | Comprueba si hay plantillas publicadas de Elementor Pro que se aplican a la entrada y al archivo del blog, y lista todas las de cada tipo con sus condiciones. |
 | `wp-connect-mcp-create-post` | Crea una entrada como borrador, pendiente, programada o publicada. Devuelve un resumen sin el contenido. |
 | `wp-connect-mcp-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. Devuelve un resumen sin el contenido. |
+| `wp-connect-mcp-schedule-posts` | Programa a la vez hasta 20 entradas creadas por el usuario, cada una con su fecha. Si alguna no se puede programar, no cambia ninguna. |
 | `wp-connect-mcp-upload-media` | Sube una imagen en base64, opcionalmente adjunta a una entrada propia. |
 | `wp-connect-mcp-trash-post` | Envía a la papelera una entrada creada por el usuario, también si ya está publicada. |
 
@@ -25,7 +26,7 @@ Para usar una herramienta hacen falta dos cosas: el **paquete** que la contiene,
 | Paquete | Herramientas |
 |---|---|
 | **Leer** (`posts-lectura`) | `list-posts`, `list-categories`, `get-post`, `get-current-user`, `get-template-status` |
-| **Escribir** (`posts-escritura`) | `create-post`, `update-post`, `upload-media` |
+| **Escribir** (`posts-escritura`) | `create-post`, `update-post`, `schedule-posts`, `upload-media` |
 | **Papelera** (`posts-papelera`) | `trash-post` |
 
 Sin ningún paquete, el usuario no puede crear la conexión ni abrir sesión MCP (403). Con paquetes, `tools/list` solo muestra las herramientas de esos paquetes, y las demás dan `Permission denied`.
@@ -39,6 +40,7 @@ Sin ningún paquete, el usuario no puede crear la conexión ni abrir sesión MCP
 | `get-template-status` | `edit_posts` | Sí | Sí | Sí |
 | `create-post` | `edit_posts`; para programar o publicar, `publish_posts` | Sí, sin programar ni publicar | Sí, también programar y publicar | Sí, también programar y publicar |
 | `update-post` | `edit_posts`, que la entrada sea suya y `edit_post`; para programar o publicar, `publish_post` | Solo las suyas no publicadas, sin programar ni publicar | Solo las suyas: también programar, publicar y despublicar | Solo las suyas |
+| `schedule-posts` | `edit_posts` y `publish_posts`; cada entrada, suya y con `edit_post` y `publish_post` | No | Solo las suyas | Solo las suyas |
 | `upload-media` | `upload_files`; con `post_id`, además entrada propia y `edit_post` | No por defecto | Sí | Sí |
 | `trash-post` | `delete_posts`, que la entrada sea suya y `delete_post` | Solo las suyas no publicadas | Solo las suyas, también publicadas | Solo las suyas |
 
@@ -59,6 +61,7 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 | `get-template-status` | Sin campos. |
 | `create-post` | `title` (obligatorio), `slug`, `content`, `excerpt`, `status`, `scheduled_date`, `categories`, `tags`, `seo_title`, `seo_description`, `focus_keyword`, `featured_image`, `return_content`. |
 | `update-post` | `id` (obligatorio) y cualquiera de los campos de `create-post`. Solo cambia los que se envían. |
+| `schedule-posts` | `posts` (obligatorio): lista de 1 a 20 `{id, scheduled_date}`, sin IDs repetidos. |
 | `upload-media` | `filename` y `data` (base64) obligatorios; `alt`, `title` y `post_id` opcionales. |
 | `trash-post` | `id` (obligatorio). |
 
@@ -70,6 +73,8 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 - `seo_title` (máximo 70 caracteres), `seo_description` (máximo 160) y `focus_keyword`: se guardan en los campos de Yoast SEO. Si Yoast no está activo, la operación se rechaza con un error claro.
 - `featured_image`: ID de una imagen subida por el mismo usuario de la conexión; `0` la quita.
 - Respuesta de `create-post` y `update-post`: los mismos campos que `get-post` salvo `content`, más `content_length` (caracteres), `content_hash` (MD5 del contenido guardado), `headings` (número de encabezados) y `links` (número de enlaces). Si `content_hash` coincide con el MD5 del contenido enviado (`md5sum` del fichero), ha llegado entero y el filtro no ha quitado nada. Con `return_content: true` devuelven también `content`. Así, subir un lote no repite cada texto de ida y de vuelta.
+- `schedule-posts`: valida todas las entradas antes de tocar ninguna. Si una falla (no es propia, no existe, fecha pasada, repetida, privada), no programa nada y el error dice qué ID falla y por qué. Más de 20 se rechazan antes de buscar ninguna. Si todas son válidas, responde con `posts` (resumen de cada una: `id`, `title`, `status`, `date`…) y `failed` (las que WordPress no pudo guardar después de validarlas; normalmente vacía). Una entrada publicada que se programa deja de verse hasta su nueva fecha, igual que con `update-post`.
+- **Varias entradas, una llamada.** Muchas llamadas seguidas o en paralelo pueden hacer saltar el cortafuegos del sitio (CrowdSec, Wordfence, Cloudflare), que bloquea la IP de quien las hace: en el sitio de pruebas pasó tras 10 `update-post` en paralelo (02/11/2026). Para programar un lote, `schedule-posts`; para subirlo, llamadas en serie. La descripción del servidor MCP se lo indica al agente.
 - `get-template-status`: para `single_post` y `archive`, `exists`, `id`, `title` y `conditions` indican la plantilla que se aplica al blog, y `templates` lista todas las publicadas de ese tipo con sus condiciones y `covers_blog`. Cubren el blog, en el archivo, las condiciones de Elementor `include/general`, `include/archive` (todos los archivos), `include/archive/post_archive` y las de categorías y etiquetas (con o sin ID); en la entrada, `include/general`, `include/singular` y `include/singular/post`. Una exclusión amplia del mismo grupo (por ejemplo, `exclude/archive`) lo anula. Las plantillas solo de autor, fecha, búsqueda, una entrada concreta o una categoría de entradas aparecen en `templates` con `covers_blog: false`.
 - `upload-media` solo admite JPEG, PNG, WebP y GIF reales, no solo por extensión; máximo 2 MB y 40 megapíxeles por defecto. Rechaza un envío demasiado grande antes de decodificarlo. No admite URLs remotas para evitar SSRF. Los límites se cambian con los filtros `wp_connect_mcp_max_upload_bytes` y `wp_connect_mcp_max_upload_pixels`.
 - Cualquier otro campo (por ejemplo, `post_type` o `author`) se rechaza.
@@ -81,9 +86,9 @@ Límites:
 - En entradas propias ya publicadas se puede editar el contenido, que cambia en directo, y también cambiar su estado: volver a borrador o pendiente la despublica. En entradas privadas se puede editar el contenido, pero no su estado ni su fecha.
 - **Solo modifica, publica y borra entradas propias** (las creadas por el usuario de la conexión), aunque su rol permita tocar las de otros: las demás dan «Solo se pueden modificar o borrar las entradas creadas por este usuario». Leer y listar sí incluye las de otros si el rol lo permite.
 - **Borrar es enviar a la papelera**: una persona puede restaurar la entrada desde el escritorio. Vuelve como borrador y sin programar, aunque estuviera programada o publicada: para que salga hay que volver a programarla o publicarla. Vale para cualquier estado: si la entrada estaba publicada, deja de verse en el sitio al momento. Un Colaborador no puede borrar sus entradas ya publicadas (WordPress no se lo permite). Si el sitio tiene la papelera desactivada (`EMPTY_TRASH_DAYS` a 0), no se borra nada.
-- No borra definitivamente ni toca páginas, usuarios, ajustes, plugins o temas. Solo sube imágenes del usuario autenticado. El servidor expone como mucho estas nueve tools, no las meta-tools de descubrimiento.
+- No borra definitivamente ni toca páginas, usuarios, ajustes, plugins o temas. Solo sube imágenes del usuario autenticado. El servidor expone como mucho estas diez tools, no las meta-tools de descubrimiento.
 - **El servidor MCP por defecto del adapter queda desactivado** (`/wp-json/mcp/mcp-adapter-default-server`, con `execute-ability` y acceso con solo `read`). Si el sitio lo necesita (por ejemplo, Novamira, que lo usa), se mantiene con `add_filter('wp_connect_mcp_keep_default_server', '__return_true');` en un plugin propio o mu-plugin.
-- **Límite por hora y usuario** en las herramientas que escriben: `create-post` 30, `update-post` 120, `upload-media` 60 y `trash-post` 30. Al superarlo, la herramienta responde que se ha alcanzado el máximo. Se cambian con el filtro `wp_connect_mcp_rate_limits`.
+- **Límite por hora y usuario** en las herramientas que escriben: `create-post` 30, `update-post` 120, `schedule-posts` 120 entradas (cuenta cada entrada del lote, no cada llamada), `upload-media` 60 y `trash-post` 30. Al superarlo, la herramienta responde que se ha alcanzado el máximo. Se cambian con el filtro `wp_connect_mcp_rate_limits`.
 - **Registro de uso:** cada herramienta usada, cada acceso denegado y cada cambio de permisos queda anotado (fecha, usuario, acción, ID y resultado) y se ve en *Usuarios → Acceso de Claude*. Se guardan los últimos 500 movimientos en la base de datos, no en `debug.log`.
 - Cada acción respeta las capacidades del usuario de WordPress (`edit_posts`, `edit_post`, `delete_posts`, `delete_post`, `publish_post`, asignar categorías y etiquetas). Sin `edit_posts` (por ejemplo, un Suscriptor) todas las herramientas responden `Permission denied`, sin revelar si un ID existe.
 - Las sesiones MCP van ligadas al usuario que las abre: no se pueden usar con las credenciales de otro.
@@ -358,6 +363,7 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 - **Credencial en el equipo:** queda en `~/.claude.json` (no en el historial de la terminal: tanto la página como los bloques la piden sin mostrarla). Es revocable y solo vale para el MCP de ese usuario. El botón «Copiar» la deja en el portapapeles: en equipos con historial o sincronización del portapapeles (Windows con Win+V, portapapeles universal de macOS), conviene borrarlo después.
 - **Direcciones `http://`:** los bloques de la terminal las rechazan (salvo `localhost`), porque la contraseña viajaría sin cifrar.
 - **Log de WordPress:** si el sitio tiene `WP_DEBUG_LOG` activo, comprobar que `wp-content/debug.log` no se puede descargar desde internet. En `example.com` sí se podía; es un problema del sitio, no del plugin.
+- **Cortafuegos del sitio:** si un WAF (CrowdSec, Wordfence, Cloudflare) bloquea la IP, la respuesta no llega a WordPress, así que el plugin no puede cambiarla: Claude recibe la página HTML del cortafuegos en lugar de JSON. Hay que esperar a que se levante el bloqueo o pedir a sistemas que lo levante, y no reintentar en bucle. Para evitarlo, `schedule-posts` y llamadas en serie (ver «Varias entradas, una llamada»).
 - **Aviso de deprecación:** el adapter MCP incluido deja un aviso en el log en cada petición. No afecta al funcionamiento.
 
 ## Probar con curl
@@ -394,7 +400,7 @@ curl -sS "$MCP" -K <(auth) \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
   -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 
-# 3. Listar herramientas: solo las de los paquetes del usuario (las nueve, con los tres paquetes)
+# 3. Listar herramientas: solo las de los paquetes del usuario (las diez, con los tres paquetes)
 curl -sS "$MCP" -K <(auth) \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
@@ -433,6 +439,21 @@ mcp_call wp-connect-mcp-update-post '{"id":123,"scheduled_date":"'"$WHEN"'"}' # 
 mcp_call wp-connect-mcp-trash-post '{"id":123}'                                # debe dar OK 123 trash
 ```
 
+`schedule-posts` responde con una lista, así que se lee aparte (con dos entradas propias, por ejemplo 123 y 124):
+
+```bash
+WHEN=$(date -d '+1 day' +%Y-%m-%dT09:00:00%:z)
+curl -sS "$MCP" -K <(auth) \
+  -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+  -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"wp-connect-mcp-schedule-posts","arguments":{"posts":[{"id":123,"scheduled_date":"'"$WHEN"'"},{"id":124,"scheduled_date":"'"$WHEN"'"}]}}}' \
+  | php -r '$r = json_decode(stream_get_contents(STDIN), true); $res = $r["result"] ?? null;
+    if (!$res) { echo "ERROR JSON-RPC: ", json_encode($r["error"] ?? $r, JSON_UNESCAPED_UNICODE), PHP_EOL; exit; }
+    if (!empty($res["isError"])) { echo "RECHAZADO: ", $res["content"][0]["text"] ?? "", PHP_EOL; exit; }
+    foreach ($res["structuredContent"]["posts"] as $p) { echo "OK: ", $p["id"], " ", $p["status"], " ", $p["date"], PHP_EOL; }
+    foreach ($res["structuredContent"]["failed"] as $f) { echo "FALLO: ", $f["id"], " ", $f["error"], PHP_EOL; }'
+```
+
 #### Enviar el contenido desde un archivo
 
 Cuando el contenido ya está en un archivo (por ejemplo, el HTML de un post redactado por Claude), un script local puede enviarlo al MCP sin que Claude tenga que leerlo y volver a escribirlo en la llamada: en un lote de 10 posts, eso son unos 220 KB menos de contexto. El servidor no necesita nada especial: es una llamada `tools/call` normal, con la misma sesión. Aquí, con la sesión abierta (pasos 1 y 2), se crea un borrador:
@@ -462,7 +483,7 @@ Los errores de las herramientas llegan dentro de `result`, con `isError: true` y
 
 Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 
-- `tools/list` devuelve solo las herramientas de los paquetes del usuario: las nueve con los tres, cinco solo con *Leer*. Sin paquetes, `initialize` da 403.
+- `tools/list` devuelve solo las herramientas de los paquetes del usuario: las diez con los tres, cinco solo con *Leer*. Sin paquetes, `initialize` da 403.
 - La contraseña de la conexión da 403 (`wp_connect_mcp_password_scope`) en `wp/v2/users/me` y en `wp/v2/posts`; una contraseña creada a mano en el perfil da 403 en el MCP.
 - Con *Leer* + *Escribir*, `trash-post` da `Permission denied`. Quitar todos los paquetes a un usuario revoca sus conexiones (`claude mcp get` deja de conectar) y queda en el registro.
 - El registro de uso de *Usuarios → Acceso de Claude* muestra las herramientas usadas, los accesos denegados y los cambios de permisos.
@@ -473,6 +494,7 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 - `upload-media` acepta una imagen válida menor de 2 MB, permite usar su ID como `featured_image` y rechaza un archivo falso con extensión `.jpg`, un archivo mayor del límite y una imagen de otro usuario.
 - Crear un borrador, leerlo, editar su título y enviarlo a la papelera funciona; desde el escritorio se puede restaurar.
 - Programar con `scheduled_date` a 10 minutos deja la entrada en `future`, y se publica sola a esa hora. El cron de WordPress solo se ejecuta cuando alguien visita el sitio, así que puede tardar algo más.
+- `schedule-posts` con dos entradas propias las deja en `future` con su fecha en una sola llamada, y el registro anota los dos IDs. Con una entrada de otro usuario, una fecha pasada o un ID repetido en la lista, no programa ninguna y el error dice cuál falla. Con un Colaborador, `Permission denied`.
 - Con un Autor, `status: publish` publica una entrada propia (también una programada, con la fecha actual) y `status: draft` la despublica.
 - Fallan como deben: `status: publish` con un Colaborador, `status: trash`, el ID de una página, una fecha pasada, un campo desconocido (`post_type`), un usuario Suscriptor, `update-post` y `trash-post` con una entrada de otro usuario (también con un Editor). Con un Autor, `trash-post` de una entrada propia publicada funciona y la retira del sitio.
 - Página de conexión: sin marcar la casilla no crea nada; con un Editor o Administrador muestra el aviso; los comandos no contienen la contraseña. El bloque de Mac y Linux, sin `</dev/tty` y con las respuestas por tubería, falla con un mensaje claro y sin guardar nada con la contraseña vacía o incorrecta, un sitio sin plugin o sin conexión y sin `claude`, y pregunta antes de sustituir una conexión existente.
@@ -495,7 +517,8 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 | Error de `MCP-Protocol-Version` | Falta esa cabecera en los pasos 2 y siguientes. |
 | `Permission denied` con un Autor o Colaborador | La entrada es de otro usuario: estos roles solo editan las suyas. |
 | «Solo se pueden modificar o borrar las entradas creadas por este usuario» | La entrada es de otro usuario. Pasa también con Editor y Administrador: el plugin solo modifica y borra las propias. |
-| Menos de nueve herramientas | Es lo normal si el usuario no tiene los tres paquetes. Si los tiene, revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
+| La respuesta es una página HTML («CrowdSec Ban», «Access denied», Cloudflare) | El cortafuegos del sitio ha bloqueado la IP, normalmente por muchas llamadas seguidas. No reintentar: esperar a que se levante o pedírselo a sistemas, y usar `schedule-posts` o llamadas en serie. |
+| Menos de diez herramientas | Es lo normal si el usuario no tiene los tres paquetes. Si los tiene, revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
 
 ## Desarrollo
 

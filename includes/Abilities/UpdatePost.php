@@ -20,7 +20,7 @@ final class UpdatePost
     {
         wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Editar entrada',
-            'description' => 'Modifica solo los campos indicados de una entrada (post) creada por este usuario. Puede pasarla a borrador, pendiente, programada o publicada (si el usuario puede publicar). Publicar una programada la publica ahora.',
+            'description' => 'Modifica solo los campos indicados de una entrada (post) creada por este usuario. Puede pasarla a borrador, pendiente, programada o publicada (si el usuario puede publicar). Publicar una programada la publica ahora. Para programar varias entradas, usar schedule-posts.',
             'category' => Plugin::CATEGORY,
             'input_schema' => [
                 'type' => 'object',
