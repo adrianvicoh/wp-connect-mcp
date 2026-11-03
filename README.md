@@ -149,7 +149,7 @@ Para cualquier persona, también si no es informática. No hay que saber el usua
 3. Elegir la pestaña del sistema (*Mac y Linux* o *Windows (PowerShell)*; se abre sola la del equipo) y pulsar **Copiar** en el comando.
 4. Abrir la terminal (Mac: *Terminal*; Windows: *PowerShell*; Linux: *Terminal*), pegar el comando y pulsar Intro.
 5. Cuando el comando la pida, copiar la **contraseña de aplicación** de la página con su botón **Copiar** y pegarla en la terminal (no se ve mientras se pega). No pegarla nunca en un chat, tampoco en el de Claude.
-6. Abrir una sesión nueva de Claude Code (las que ya estaban abiertas no ven el sitio) y preguntarle «¿Con qué usuario estás conectado a WordPress?»: debe decir el usuario de la conexión. En la terminal, `/mcp` también muestra el sitio conectado, con las herramientas de sus paquetes (9 con los tres); en la app de escritorio, `/mcp` solo dice cuántas conexiones hay.
+6. Abrir una sesión nueva de Claude Code (las que ya estaban abiertas no ven el sitio) y preguntarle «¿Con qué usuario estás conectado a WordPress?»: debe decir el usuario de la conexión. En la terminal, `/mcp` también muestra el sitio conectado, con las herramientas de sus paquetes (10 con los tres); en la app de escritorio, `/mcp` solo dice cuántas conexiones hay.
 
 Si el usuario no tiene ningún paquete, la página lo dice y no ofrece el botón: hay que pedir acceso a un administrador.
 
