@@ -5,6 +5,7 @@ namespace WpConnectMcp\Security;
 use WP\MCP\Core\McpServer;
 use WP\MCP\Domain\Utils\McpNameSanitizer;
 use WP_Error;
+use WpConnectMcp\Abilities\CreateCategory;
 use WpConnectMcp\Abilities\CreatePost;
 use WpConnectMcp\Abilities\SchedulePosts;
 use WpConnectMcp\Abilities\TrashPost;
@@ -30,6 +31,7 @@ final class Guard
         SchedulePosts::NAME => 120,
         UploadMedia::NAME => 60,
         TrashPost::NAME => 30,
+        CreateCategory::NAME => 10,
     ];
 
     /**

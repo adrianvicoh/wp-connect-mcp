@@ -16,7 +16,7 @@ final class GetCurrentUser
     {
         wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Consultar usuario conectado',
-            'description' => 'Devuelve el usuario, las capacidades relevantes y los paquetes de herramientas otorgados a la conexión, sin correo ni otros datos personales.',
+            'description' => 'Devuelve el usuario, las capacidades relevantes, los paquetes de herramientas otorgados a la conexión, la versión del plugin y el alcance de la contraseña, sin correo ni otros datos personales.',
             'category' => Plugin::CATEGORY,
             'input_schema' => ['type' => 'object', 'default' => [], 'properties' => [], 'additionalProperties' => false],
             'output_schema' => [
@@ -36,8 +36,10 @@ final class GetCurrentUser
                         'required' => ['publish_posts', 'edit_others_posts', 'upload_files'],
                     ],
                     'packages' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Paquetes de herramientas otorgados por un administrador.'],
+                    'version' => ['type' => 'string', 'description' => 'Versión de WP Connect MCP instalada en el sitio.'],
+                    'password_scope' => ['type' => 'string', 'enum' => ['mcp'], 'description' => 'La contraseña de la conexión solo vale para este MCP, y el usuario no puede usar la API de WordPress con otras credenciales.'],
                 ],
-                'required' => ['id', 'login', 'display_name', 'roles', 'can', 'packages'],
+                'required' => ['id', 'login', 'display_name', 'roles', 'can', 'packages', 'version', 'password_scope'],
             ],
             'execute_callback' => [self::class, 'execute'],
             'permission_callback' => [self::class, 'permission'],
@@ -68,6 +70,9 @@ final class GetCurrentUser
                 'upload_files' => current_user_can('upload_files'),
             ],
             'packages' => Grants::packagesOf((int) $user->ID),
+            'version' => WP_CONNECT_MCP_VERSION,
+            // Siempre «mcp»: el servidor solo acepta contraseñas de la página, limitadas a esta ruta (Guard::canConnect()).
+            'password_scope' => 'mcp',
         ];
     }
 }

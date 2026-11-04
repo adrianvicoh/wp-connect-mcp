@@ -6,14 +6,18 @@ use WP\MCP\Core\McpAdapter;
 use WP\MCP\Infrastructure\ErrorHandling\ErrorLogMcpErrorHandler;
 use WP\MCP\Infrastructure\Observability\NullMcpObservabilityHandler;
 use WP\MCP\Transport\HttpTransport;
+use WpConnectMcp\Abilities\CreateCategory;
 use WpConnectMcp\Abilities\CreatePost;
 use WpConnectMcp\Admin\ConnectPage;
 use WpConnectMcp\Admin\GrantsPage;
 use WpConnectMcp\Abilities\GetPost;
 use WpConnectMcp\Abilities\GetCurrentUser;
+use WpConnectMcp\Abilities\GetPublished;
 use WpConnectMcp\Abilities\GetTemplateStatus;
 use WpConnectMcp\Abilities\ListCategories;
+use WpConnectMcp\Abilities\ListPages;
 use WpConnectMcp\Abilities\ListPosts;
+use WpConnectMcp\Abilities\ListPublishedPosts;
 use WpConnectMcp\Abilities\SchedulePosts;
 use WpConnectMcp\Abilities\TrashPost;
 use WpConnectMcp\Abilities\UpdatePost;
@@ -47,6 +51,10 @@ final class Plugin
         SchedulePosts::class,
         UploadMedia::class,
         TrashPost::class,
+        CreateCategory::class,
+        ListPages::class,
+        ListPublishedPosts::class,
+        GetPublished::class,
     ];
 
     public static function boot(): void
@@ -94,7 +102,7 @@ final class Plugin
             self::ROUTE_NAMESPACE,
             self::ROUTE,
             'WP Connect MCP',
-            'Leer entradas y categorías; crear, editar, programar, publicar, subir imágenes y enviar a la papelera solo contenido propio. Para programar varias entradas, usar schedule-posts en una sola llamada y no lanzar muchas llamadas en paralelo: el cortafuegos del sitio puede bloquear la IP.',
+            'Leer entradas y categorías; crear, editar, programar, publicar, subir imágenes y enviar a la papelera solo contenido propio. Según los permisos del usuario, también crear categorías y leer las páginas y entradas publicadas del sitio (para el enlazado, leer primero el esquema con get-published y el contenido solo si hace falta). Para programar varias entradas, usar schedule-posts en una sola llamada y no lanzar muchas llamadas en paralelo: el cortafuegos del sitio puede bloquear la IP.',
             'v' . WP_CONNECT_MCP_VERSION,
             [HttpTransport::class],
             ErrorLogMcpErrorHandler::class,

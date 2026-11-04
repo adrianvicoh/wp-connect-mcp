@@ -3,12 +3,16 @@
 namespace WpConnectMcp\Security;
 
 use WP_Application_Passwords;
+use WpConnectMcp\Abilities\CreateCategory;
 use WpConnectMcp\Abilities\CreatePost;
 use WpConnectMcp\Abilities\GetCurrentUser;
 use WpConnectMcp\Abilities\GetPost;
+use WpConnectMcp\Abilities\GetPublished;
 use WpConnectMcp\Abilities\GetTemplateStatus;
 use WpConnectMcp\Abilities\ListCategories;
+use WpConnectMcp\Abilities\ListPages;
 use WpConnectMcp\Abilities\ListPosts;
+use WpConnectMcp\Abilities\ListPublishedPosts;
 use WpConnectMcp\Abilities\SchedulePosts;
 use WpConnectMcp\Abilities\TrashPost;
 use WpConnectMcp\Abilities\UpdatePost;
@@ -59,6 +63,22 @@ final class Grants
             'description' => 'Enviar a la papelera sus entradas, también publicadas.',
             'abilities' => [
                 TrashPost::NAME,
+            ],
+        ],
+        'categorias-escritura' => [
+            'label' => 'Categorías y etiquetas',
+            'description' => 'Crear categorías nuevas y asignar etiquetas que aún no existen (sin este paquete, solo las existentes).',
+            'abilities' => [
+                CreateCategory::NAME,
+            ],
+        ],
+        'sitio-lectura' => [
+            'label' => 'Leer el sitio',
+            'description' => 'Listar y leer las páginas y las entradas publicadas de cualquier autor, para el enlazado interno. Solo lo publicado, lo mismo que ve un visitante.',
+            'abilities' => [
+                ListPages::NAME,
+                ListPublishedPosts::NAME,
+                GetPublished::NAME,
             ],
         ],
     ];
@@ -157,7 +177,13 @@ final class Grants
     }
 
     /**
-     * Al pasar a 0.3.0, quien ya tenía una conexión creada desde la página recibe todos los paquetes,
+     * Paquetes que la migración de la 0.3.0 dio a quien ya tenía una conexión. Los añadidos después
+     * (categorías, leer el sitio) no se dan a nadie automáticamente: los otorga un administrador.
+     */
+    private const MIGRATED_PACKAGES = ['posts-lectura', 'posts-escritura', 'posts-papelera'];
+
+    /**
+     * Al pasar a 0.3.0, quien ya tenía una conexión creada desde la página recibe los paquetes de entradas,
      * para que las conexiones existentes sigan funcionando. Queda anotado en el registro.
      */
     public static function migrate(): void
@@ -172,7 +198,7 @@ final class Grants
         foreach ($userIds as $userId) {
             $userId = (int) $userId;
             if (self::connectionsOf($userId) && !get_user_meta($userId, self::META, true)) {
-                self::set($userId, array_keys(self::PACKAGES), 0);
+                self::set($userId, self::MIGRATED_PACKAGES, 0);
             }
         }
     }

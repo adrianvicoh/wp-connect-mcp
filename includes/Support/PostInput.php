@@ -7,6 +7,8 @@ use DateTimeZone;
 use Exception;
 use WP_Error;
 use WP_Post;
+use WpConnectMcp\Abilities\CreateCategory;
+use WpConnectMcp\Security\Grants;
 
 defined('ABSPATH') || exit;
 
@@ -58,7 +60,7 @@ final class PostInput
             'tags' => [
                 'type' => 'array',
                 'items' => ['type' => 'string'],
-                'description' => 'Nombres de etiquetas; las que no existan se crean. Sustituye las actuales.',
+                'description' => 'Nombres de etiquetas. Sustituye las actuales. Las que no existan solo se crean si el usuario tiene el paquete «Categorías y etiquetas» (o puede gestionar categorías); si no, se rechaza la operación y el error dice cuáles faltan.',
             ],
             'seo_title' => [
                 'type' => 'string',
@@ -272,9 +274,39 @@ final class PostInput
             return new WP_Error('wp_connect_mcp_cannot_assign_terms', 'Este usuario no puede asignar etiquetas.', ['status' => 403]);
         }
 
-        return array_values(array_unique(array_filter(array_map(static function ($name): string {
+        $names = array_values(array_unique(array_filter(array_map(static function ($name): string {
             return sanitize_text_field((string) $name);
         }, $names), 'strlen')));
+
+        if (self::canCreateTags()) {
+            return $names;
+        }
+
+        $missing = array_values(array_filter($names, static function (string $name): bool {
+            return !term_exists($name, 'post_tag');
+        }));
+
+        if ($missing) {
+            return new WP_Error(
+                'wp_connect_mcp_tags_not_found',
+                sprintf(
+                    'Estas etiquetas no existen y este usuario no puede crearlas: %s. Usa etiquetas existentes o pide a un administrador el paquete «Categorías y etiquetas».',
+                    implode(', ', $missing)
+                ),
+                ['status' => 400, 'missing' => $missing]
+            );
+        }
+
+        return $names;
+    }
+
+    /**
+     * Crear etiquetas nuevas va con el paquete de categorías (o con manage_categories), no con asignarlas.
+     */
+    private static function canCreateTags(): bool
+    {
+        return current_user_can('manage_categories')
+            || Grants::allows(CreateCategory::NAME, get_current_user_id());
     }
 
     private static function canAssign(string $taxonomy): bool

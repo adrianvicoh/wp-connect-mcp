@@ -2,6 +2,20 @@
 
 Cambios por versión publicada. El día a día (pruebas, decisiones, pendientes) está en [ESTADO.md](ESTADO.md).
 
+## 0.4.5 (sin publicar)
+
+Peticiones de la reunión «Automatització IA Posts» (02/11/2026), recogidas en los puntos 15 a 18 de `post-create-wwwarcelona/docs/requisitos-wp-connect-mcp.md`.
+
+- **Nueva herramienta `create-category`** (paquete nuevo *Categorías y etiquetas*, `categorias-escritura`): crea una categoría con `name`, `slug` y `parent`. Si ya existe una con ese slug, o con ese nombre bajo el mismo padre, devuelve la existente con `created: false`. Límite de 10 por hora.
+- **Etiquetas (cambia el comportamiento):** `create-post` y `update-post` solo crean etiquetas nuevas si el usuario tiene el paquete *Categorías y etiquetas* o `manage_categories`. Si no, la operación se rechaza (`wp_connect_mcp_tags_not_found`) y el error dice qué etiquetas faltan.
+- **Nuevas herramientas de lectura del sitio** (paquete nuevo *Leer el sitio*, `sitio-lectura`), para el enlazado interno. Solo devuelven contenido publicado y sin contraseña, de cualquier autor:
+  - `list-pages`: páginas, sin el contenido;
+  - `list-published-posts`: entradas, con categorías y extracto, sin el contenido;
+  - `get-published`: por defecto solo el esquema (encabezados, enlaces y palabras); el contenido completo con `include_content: true`.
+- **`get-current-user`** devuelve `version` (la del plugin) y `password_scope: "mcp"`.
+- **Acceso a la API (cambia el comportamiento):** un usuario con algún paquete solo puede usar la API de WordPress por el MCP. Sus contraseñas de aplicación creadas a mano se rechazan en la API REST y en XML-RPC, y XML-RPC con su contraseña normal también (`wp_connect_mcp_api_blocked`). No hay excepción por usuario, y el rechazo queda en el registro. El escritorio no cambia. *Usuarios → Acceso de Claude* lo avisa.
+- Los paquetes nuevos no se dan a nadie automáticamente: los otorga un administrador.
+
 ## 0.4.0 (sin publicar)
 
 Cambios tras la tercera prueba con el plugin de Claude `post-create-wwwarcelona` (02/11/2026), en la que CrowdSec bloqueó la IP tras 10 `update-post` en paralelo.

@@ -1,6 +1,6 @@
 # Seguridad de WP Connect MCP
 
-Informe para sistemas · Versión 0.3.0 · 31/10/2026
+Informe para sistemas · Versión 0.3.0 · 31/10/2026 · Actualizado con la 0.4.5 el 04/11/2026
 
 Qué se ha cerrado en la 0.3.0, qué riesgo queda y qué necesitamos que decidáis antes de usar el plugin en producción. Versión local del informe publicado como artifact; el detalle técnico está en el [README](../README.md), [ALTERNATIVAS.md](ALTERNATIVAS.md) y el [CHANGELOG](../CHANGELOG.md).
 
@@ -21,6 +21,20 @@ Está probada fuera de WordPress; **falta probarla en el sitio de pruebas y vues
 | **3** | Paquetes por usuario: Leer, Escribir y Papelera. Sin paquetes, sin acceso. |
 | **34** | Comprobaciones locales, todas correctas, en una simulación con funciones de WordPress sustituidas. |
 | **10** | Hallazgos de la revisión: 6 arreglados en la 0.3.0, 3 arreglados en parte y 1 pendiente de decisión. |
+
+## Qué cambia en la 0.4.5 (04/11/2026, sin probar en el sitio)
+
+Tras la reunión de marketing del 02/11/2026:
+
+| Punto | Antes | 0.4.5 |
+|---|---|---|
+| Otras credenciales del usuario de Claude | Sus contraseñas de aplicación creadas a mano valían para la API REST y XML-RPC según el rol; XML-RPC aceptaba su contraseña normal. | Si el usuario tiene algún paquete, se rechazan siempre (`wp_connect_mcp_api_blocked`), sin excepción por usuario. Queda en el registro. El escritorio (`wp-admin`) no cambia. |
+| Etiquetas nuevas | Un Autor o Colaborador las creaba al asignarlas. | Solo con el paquete *Categorías y etiquetas* o `manage_categories`; si no, error con las que faltan. |
+| Crear categorías | No se podía. | `create-category`, con el paquete *Categorías y etiquetas*; 10 por hora. No edita ni borra las existentes. |
+| Leer el sitio | Solo las entradas que el usuario puede editar. | Con el paquete *Leer el sitio*: páginas y entradas **publicadas** de cualquier autor, lo mismo que ve un visitante. Borradores, privadas y con contraseña siguen fuera. |
+| Comprobación del cliente | — | `get-current-user` devuelve la versión del plugin y `password_scope: "mcp"`. |
+
+Lo que sigue sin cubrir: plugins de autenticación de terceros (JWT, OAuth, Basic Auth con la contraseña normal), si el sitio los tiene.
 
 ## Qué cambia en la 0.3.0
 
@@ -60,7 +74,7 @@ Revisión de toda la documentación y del código, hecha aparte de la implementa
 | Credencial en los argumentos de procesos | Media | Arreglado en parte | `curl` la recibe ahora por la entrada estándar. `claude mcp add` la sigue recibiendo como argumento durante un instante: puede quedar en registros de EDR, Sysmon o auditd. |
 | Datos reales del entorno en el repositorio | Media | Arreglado en parte | El repositorio es público. Se ha quitado el dominio del sitio de pruebas, pero sigue en el historial de git y quedan nombres de usuarios de prueba. Pendiente decidir si se reescribe el historial. |
 | Direcciones `http://` en los comandos | Baja | Arreglado | Se rechazan, salvo `localhost`. |
-| Un Autor puede crear etiquetas | Baja | Pendiente | WordPress no se lo permite por `wp/v2/tags`. Decidir si se usan solo las existentes. |
+| Un Autor puede crear etiquetas | Baja | Arreglado (0.4.5) | Solo con el paquete *Categorías y etiquetas* o `manage_categories`. |
 | Valores sin validar en los comandos | Baja | Arreglado | Se valida también la dirección del sitio, y se quitan `&` y `%` (Windows ejecuta `claude.cmd`). |
 | Subida: decodifica antes de medir | Baja | Arreglado | El tamaño se comprueba antes de decodificar, y hay límite de megapíxeles. |
 | Contraseña creada aunque no estén disponibles | Baja | Arreglado | Se comprueba la disponibilidad antes de crear nada. |
@@ -69,7 +83,7 @@ Revisión de toda la documentación y del código, hecha aparte de la implementa
 ## Lo que la 0.3.0 no resuelve
 
 - **Dentro de sus paquetes, la credencial hace lo mismo que Claude.** Por ejemplo, programar entradas que se publicarán solas. Se mitiga con revisión humana antes de la fecha y con el registro.
-- **Las contraseñas creadas a mano siguen valiendo para la API REST** según el rol. Ya no sirven para el MCP; si no se quieren, se desactivan con un plugin de seguridad.
+- ~~**Las contraseñas creadas a mano siguen valiendo para la API REST** según el rol.~~ Resuelto en la 0.4.5 para los usuarios con paquetes: solo pueden usar la API por el MCP.
 - **La credencial queda en el equipo** (`~/.claude.json`), en texto plano, y pasa por los argumentos de `claude mcp add` al guardarla.
 - **Contenido erróneo o inyectado** desde el Excel o desde una web: el HTML se filtra con `wp_kses_post`, pero el texto en sí lo tiene que revisar una persona.
 - **Dependencia del adapter MCP de WordPress**, todavía en versión 0.x e incluido en `vendor/`.

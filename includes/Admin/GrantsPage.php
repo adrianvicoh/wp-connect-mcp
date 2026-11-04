@@ -64,6 +64,7 @@ final class GrantsPage
 
         echo '<p>' . esc_html__('Elige qué paquetes de herramientas puede usar Claude con cada usuario. Sin ningún paquete, el usuario no puede crear la conexión ni usar las que ya tenga. Claude solo actúa sobre contenido del propio usuario y dentro de lo que permite su rol.', 'wp-connect-mcp') . '</p>';
         echo '<p>' . esc_html__('Al quitar todos los paquetes a un usuario, se revocan también sus conexiones con Claude.', 'wp-connect-mcp') . '</p>';
+        echo '<div class="notice notice-warning inline"><p>' . esc_html__('Un usuario con algún paquete solo puede usar la API de WordPress a través de la conexión con Claude: dejan de funcionar sus contraseñas de aplicación creadas a mano (y las aplicaciones que las usen, como la app móvil de WordPress) y XML-RPC. Puede seguir entrando en el escritorio. Si otra integración necesita la API, usa otro usuario para ella.', 'wp-connect-mcp') . '</p></div>';
 
         self::renderPackages();
         self::renderForm($users);

@@ -16,6 +16,10 @@ Plugin de WordPress que expone un servidor MCP propio para que Claude u otros ag
 | `wp-connect-mcp-schedule-posts` | Programa a la vez hasta 20 entradas creadas por el usuario, cada una con su fecha. Si alguna no se puede programar, no cambia ninguna. |
 | `wp-connect-mcp-upload-media` | Sube una imagen en base64, opcionalmente adjunta a una entrada propia. |
 | `wp-connect-mcp-trash-post` | Envía a la papelera una entrada creada por el usuario, también si ya está publicada. |
+| `wp-connect-mcp-create-category` | Crea una categoría de entradas; si ya existe con ese slug (o con ese nombre bajo el mismo padre), devuelve la existente. |
+| `wp-connect-mcp-list-pages` | Lista las páginas publicadas (id, título, URL y padre), sin el contenido. |
+| `wp-connect-mcp-list-published-posts` | Lista las entradas publicadas de cualquier autor (id, título, URL, categorías y extracto), sin el contenido. |
+| `wp-connect-mcp-get-published` | Lee una entrada o página publicada: por defecto solo su esquema (encabezados, enlaces y palabras); el contenido, si se pide. |
 
 Cada tool es una ability de WordPress con el mismo nombre y `/` tras el prefijo `wp-connect-mcp` (`wp-connect-mcp/list-posts`, etc.), en la categoría `wp-connect-mcp`. Solo se exponen en el servidor `/wp-json/wp-connect-mcp/mcp`, y cada usuario solo ve y usa las de los **paquetes** que le haya dado un administrador (ver «Dar y quitar acceso»).
 
@@ -28,6 +32,8 @@ Para usar una herramienta hacen falta dos cosas: el **paquete** que la contiene,
 | **Leer** (`posts-lectura`) | `list-posts`, `list-categories`, `get-post`, `get-current-user`, `get-template-status` |
 | **Escribir** (`posts-escritura`) | `create-post`, `update-post`, `schedule-posts`, `upload-media` |
 | **Papelera** (`posts-papelera`) | `trash-post` |
+| **Categorías y etiquetas** (`categorias-escritura`) | `create-category`. Además, con este paquete `create-post` y `update-post` pueden asignar etiquetas que aún no existen (se crean). |
+| **Leer el sitio** (`sitio-lectura`) | `list-pages`, `list-published-posts`, `get-published`: solo lo publicado, de cualquier autor (lo mismo que ve un visitante). Para el enlazado interno. |
 
 Sin ningún paquete, el usuario no puede crear la conexión ni abrir sesión MCP (403). Con paquetes, `tools/list` solo muestra las herramientas de esos paquetes, y las demás dan `Permission denied`.
 
@@ -43,11 +49,13 @@ Sin ningún paquete, el usuario no puede crear la conexión ni abrir sesión MCP
 | `schedule-posts` | `edit_posts` y `publish_posts`; cada entrada, suya y con `edit_post` y `publish_post` | No | Solo las suyas | Solo las suyas |
 | `upload-media` | `upload_files`; con `post_id`, además entrada propia y `edit_post` | No por defecto | Sí | Sí |
 | `trash-post` | `delete_posts`, que la entrada sea suya y `delete_post` | Solo las suyas no publicadas | Solo las suyas, también publicadas | Solo las suyas |
+| `create-category` | `edit_posts` (y el paquete; no exige `manage_categories`) | Sí | Sí | Sí |
+| `list-pages`, `list-published-posts`, `get-published` | `edit_posts`; solo contenido publicado y sin contraseña | Sí | Sí | Sí |
 
 - Un **Suscriptor** no puede usar ninguna: todas dan `Permission denied`, sin revelar si un ID existe.
 - **Modificar y borrar, solo entradas propias**, también para Editores y Administradores. Leer y listar sí incluye las de otros cuando el rol lo permite.
 - Lo de «no publicadas» del Colaborador lo impone WordPress, no el plugin: un Colaborador no puede editar ni borrar sus entradas una vez publicadas.
-- Asignar categorías y etiquetas exige además la capacidad de asignarlas (la tienen todos estos roles por defecto).
+- Asignar categorías y etiquetas exige además la capacidad de asignarlas (la tienen todos estos roles por defecto). Asignar etiquetas que no existen (y que, por tanto, se crean) exige además el paquete *Categorías y etiquetas* o `manage_categories`.
 - Si el sitio cambia los roles o sus capacidades (por ejemplo, con un plugin de roles), manda lo que tenga el usuario, no el nombre del rol.
 
 Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
@@ -64,11 +72,15 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 | `schedule-posts` | `posts` (obligatorio): lista de 1 a 20 `{id, scheduled_date}`, sin IDs repetidos. |
 | `upload-media` | `filename` y `data` (base64) obligatorios; `alt`, `title` y `post_id` opcionales. |
 | `trash-post` | `id` (obligatorio). |
+| `create-category` | `name` (obligatorio, máximo 200 caracteres), `slug`, `parent` (ID de una categoría existente). |
+| `list-pages` | `search`, `parent` (ID; 0 para las de primer nivel), `per_page` (1–100, por defecto 20), `page`. Ordena por orden de menú y título. |
+| `list-published-posts` | `search`, `category` (ID), `per_page` (1–100, por defecto 20), `page`. Ordena de la más reciente a la más antigua. |
+| `get-published` | `id` (obligatorio), `include_content` (por defecto `false`). |
 
 - `content`: HTML o marcado de bloques; se filtra con las etiquetas permitidas en entradas.
 - `status`: `draft` (por defecto), `pending`, `future` o `publish`. `publish` publica ahora: si la entrada estaba programada, se publica con la fecha y hora actuales. No se admite junto a `scheduled_date`.
 - `scheduled_date`: ISO 8601, en el futuro (por ejemplo, `2026-10-28T09:00:00+01:00`). Sin zona horaria se usa la del sitio. Implica `future`.
-- `categories`: IDs de categorías existentes. `tags`: nombres; las que no existen se crean. Las dos listas sustituyen a las actuales.
+- `categories`: IDs de categorías existentes (las nuevas se crean antes con `create-category`). `tags`: nombres. Las que no existen solo se crean si el usuario tiene el paquete *Categorías y etiquetas* o `manage_categories`; si no, la operación se rechaza entera (`wp_connect_mcp_tags_not_found`) y el error dice cuáles faltan. Las dos listas sustituyen a las actuales.
 - `slug`: se sanea con las reglas de WordPress; si ya existe, WordPress lo hace único.
 - `seo_title` (máximo 70 caracteres), `seo_description` (máximo 160) y `focus_keyword`: se guardan en los campos de Yoast SEO. Si Yoast no está activo, la operación se rechaza con un error claro.
 - `featured_image`: ID de una imagen subida por el mismo usuario de la conexión; `0` la quita.
@@ -76,6 +88,8 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 - `schedule-posts`: valida todas las entradas antes de tocar ninguna. Si una falla (no es propia, no existe, fecha pasada, repetida, privada), no programa nada y el error dice qué ID falla y por qué. Más de 20 se rechazan antes de buscar ninguna. Si todas son válidas, responde con `posts` (resumen de cada una: `id`, `title`, `status`, `date`…) y `failed` (las que WordPress no pudo guardar después de validarlas; normalmente vacía). Una entrada publicada que se programa deja de verse hasta su nueva fecha, igual que con `update-post`.
 - **Varias entradas, una llamada.** Muchas llamadas seguidas o en paralelo pueden hacer saltar el cortafuegos del sitio (CrowdSec, Wordfence, Cloudflare), que bloquea la IP de quien las hace: en el sitio de pruebas pasó tras 10 `update-post` en paralelo (02/11/2026). No pasa siempre (el 03/11/2026 otras 10 en paralelo no lo hicieron saltar), así que una vez sin bloqueo no demuestra que sea seguro. Para programar un lote, `schedule-posts`; para subirlo, llamadas en serie. La descripción del servidor MCP se lo indica al agente.
 - `get-template-status`: para `single_post` y `archive`, `exists`, `id`, `title` y `conditions` indican la plantilla que se aplica al blog, y `templates` lista todas las publicadas de ese tipo con sus condiciones y `covers_blog`. Cubren el blog, en el archivo, las condiciones de Elementor `include/general`, `include/archive` (todos los archivos), `include/archive/post_archive` y las de categorías y etiquetas (con o sin ID); en la entrada, `include/general`, `include/singular` y `include/singular/post`. Una exclusión amplia del mismo grupo (por ejemplo, `exclude/archive`) lo anula. Las plantillas solo de autor, fecha, búsqueda, una entrada concreta o una categoría de entradas aparecen en `templates` con `covers_blog: false`.
+- `create-category`: responde `id`, `name`, `slug`, `parent`, `link` y `created`. Si ya existe una categoría con ese slug (el enviado o el que sale del nombre), o con el mismo nombre bajo el mismo padre, devuelve esa con `created: false` y no crea otra: se puede repetir sin duplicar.
+- **Leer el sitio** (`list-pages`, `list-published-posts`, `get-published`): solo entradas y páginas publicadas y sin contraseña, de cualquier autor. Borradores, privadas, con contraseña, otros tipos o IDs inexistentes dan el mismo error («No existe ningún contenido publicado…»), sin revelar si el ID existe. Las listas no llevan el contenido. `get-published` devuelve por defecto el esquema: `headings` (`level`, `text`), `links` (`href`, `text`, `internal`: relativo o del mismo dominio, con o sin `www.`), `word_count`, `excerpt` (el manual o las primeras 40 palabras), y `categories` en las entradas; con `include_content: true`, también `content`. Así el enlazado lee unos cientos de bytes por página en lugar del texto entero, y pide el contenido solo para buscar un ancla. `built_with_elementor: true` avisa de que el contenido es la copia en HTML que guarda Elementor, que puede no reflejar el último cambio. `list-posts` y `get-post` no cambian: son para las entradas que el usuario puede editar.
 - `upload-media` solo admite JPEG, PNG, WebP y GIF reales, no solo por extensión; máximo 2 MB y 40 megapíxeles por defecto. Rechaza un envío demasiado grande antes de decodificarlo. No admite URLs remotas para evitar SSRF. Los límites se cambian con los filtros `wp_connect_mcp_max_upload_bytes` y `wp_connect_mcp_max_upload_pixels`.
 - Cualquier otro campo (por ejemplo, `post_type` o `author`) se rechaza.
 
@@ -86,9 +100,9 @@ Límites:
 - En entradas propias ya publicadas se puede editar el contenido, que cambia en directo, y también cambiar su estado: volver a borrador o pendiente la despublica. En entradas privadas se puede editar el contenido, pero no su estado ni su fecha.
 - **Solo modifica, publica y borra entradas propias** (las creadas por el usuario de la conexión), aunque su rol permita tocar las de otros: las demás dan «Solo se pueden modificar o borrar las entradas creadas por este usuario». Leer y listar sí incluye las de otros si el rol lo permite.
 - **Borrar es enviar a la papelera**: una persona puede restaurar la entrada desde el escritorio. Vuelve como borrador y sin programar, aunque estuviera programada o publicada: para que salga hay que volver a programarla o publicarla. Vale para cualquier estado: si la entrada estaba publicada, deja de verse en el sitio al momento. Un Colaborador no puede borrar sus entradas ya publicadas (WordPress no se lo permite). Si el sitio tiene la papelera desactivada (`EMPTY_TRASH_DAYS` a 0), no se borra nada.
-- No borra definitivamente ni toca páginas, usuarios, ajustes, plugins o temas. Solo sube imágenes del usuario autenticado. El servidor expone como mucho estas diez tools, no las meta-tools de descubrimiento.
+- No borra definitivamente ni toca páginas, usuarios, ajustes, plugins o temas. Solo sube imágenes del usuario autenticado. El servidor expone como mucho estas catorce tools, no las meta-tools de descubrimiento. Crear categorías y leer páginas no cambia esto: no se editan páginas ni categorías existentes, ni se borra ninguna.
 - **El servidor MCP por defecto del adapter queda desactivado** (`/wp-json/mcp/mcp-adapter-default-server`, con `execute-ability` y acceso con solo `read`). Si el sitio lo necesita (por ejemplo, Novamira, que lo usa), se mantiene con `add_filter('wp_connect_mcp_keep_default_server', '__return_true');` en un plugin propio o mu-plugin.
-- **Límite por hora y usuario** en las herramientas que escriben: `create-post` 30, `update-post` 120, `schedule-posts` 120 entradas (cuenta cada entrada del lote, no cada llamada), `upload-media` 60 y `trash-post` 30. Al superarlo, la herramienta responde que se ha alcanzado el máximo. Se cambian con el filtro `wp_connect_mcp_rate_limits`.
+- **Límite por hora y usuario** en las herramientas que escriben: `create-post` 30, `update-post` 120, `schedule-posts` 120 entradas (cuenta cada entrada del lote, no cada llamada), `upload-media` 60, `trash-post` 30 y `create-category` 10. Al superarlo, la herramienta responde que se ha alcanzado el máximo. Se cambian con el filtro `wp_connect_mcp_rate_limits`.
 - **Registro de uso:** cada herramienta usada, cada acceso denegado y cada cambio de permisos queda anotado (fecha, usuario, acción, ID y resultado) y se ve en *Usuarios → Acceso de Claude*. Se guardan los últimos 500 movimientos en la base de datos, no en `debug.log`.
 - Cada acción respeta las capacidades del usuario de WordPress (`edit_posts`, `edit_post`, `delete_posts`, `delete_post`, `publish_post`, asignar categorías y etiquetas). Sin `edit_posts` (por ejemplo, un Suscriptor) todas las herramientas responden `Permission denied`, sin revelar si un ID existe.
 - Las sesiones MCP van ligadas al usuario que las abre: no se pueden usar con las credenciales de otro.
@@ -109,7 +123,7 @@ El paquete `wordpress/mcp-adapter` va incluido en `vendor/` y se carga con el au
 3. Crear el usuario que va a usar Claude (ver «Conexión») y darle acceso en *Usuarios → Acceso de Claude*.
 4. Conectarlo desde *Herramientas → Conectar con Claude*, entrando con ese usuario.
 
-Para actualizar, basta con subir los ficheros cambiados; no hay que reactivar el plugin. Al pasar a la 0.3.0, quien ya tenía una conexión creada desde la página recibe los tres paquetes una sola vez (queda en el registro de uso como «(sistema)»), así que sus conexiones siguen funcionando. Las contraseñas creadas a mano en el perfil dejan de valer para el MCP.
+Para actualizar, basta con subir los ficheros cambiados; no hay que reactivar el plugin. Al pasar a la 0.3.0, quien ya tenía una conexión creada desde la página recibe los tres paquetes de entonces una sola vez (queda en el registro de uso como «(sistema)»), así que sus conexiones siguen funcionando. Las contraseñas creadas a mano en el perfil dejan de valer para el MCP. Al pasar a la 0.4.5, nadie recibe los paquetes nuevos automáticamente, y los usuarios con paquetes dejan de poder usar la API de WordPress con contraseñas creadas a mano o por XML-RPC.
 
 ## Conexión
 
@@ -129,12 +143,13 @@ Ningún rol permite a Claude borrar definitivamente ni tocar entradas de otros u
 
 Lo hace un administrador (capacidad `promote_users`) en **Usuarios → Acceso de Claude**:
 
-- una fila por usuario que puede editar entradas, con una casilla por paquete (*Leer*, *Escribir*, *Papelera*), sus conexiones con el último uso y quién hizo el último cambio y cuándo;
-- nadie tiene acceso por defecto;
+- una fila por usuario que puede editar entradas, con una casilla por paquete (*Leer*, *Escribir*, *Papelera*, *Categorías y etiquetas*, *Leer el sitio*), sus conexiones con el último uso y quién hizo el último cambio y cuándo;
+- nadie tiene acceso por defecto (los paquetes *Categorías y etiquetas* y *Leer el sitio*, de la 0.4.5, tampoco se dan a quien ya tenía los otros);
+- **un usuario con algún paquete solo puede usar la API de WordPress a través del MCP**: sus contraseñas de aplicación creadas a mano y XML-RPC dejan de funcionar (ver «Seguridad y limitaciones conocidas»). Puede seguir entrando en el escritorio;
 - al quitar todos los paquetes a un usuario, **se revocan también sus conexiones** con Claude (sus contraseñas creadas desde la página);
 - debajo, el **registro de uso**: los últimos 100 movimientos.
 
-Para un usuario de marketing que usa el plugin de Claude de posts, lo normal es *Leer* + *Escribir*, y *Papelera* solo si debe poder retirar entradas.
+Para un usuario de marketing que usa el plugin de Claude de posts, lo normal es *Leer* + *Escribir*, *Leer el sitio* para el enlazado interno, *Categorías y etiquetas* solo si debe poder crear categorías o etiquetas nuevas, y *Papelera* solo si debe poder retirar entradas.
 
 Endpoint: `https://<sitio>/wp-json/wp-connect-mcp/mcp` (es el dato que se usa en los comandos de abajo, no un comando).
 
@@ -351,7 +366,8 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 
 ## Seguridad y limitaciones conocidas
 
-- **La contraseña de la conexión solo vale para el MCP** (desde la 0.3.0): en `wp/v2`, `batch` y XML-RPC responde 403 (`wp_connect_mcp_password_scope`), y el MCP rechaza las contraseñas creadas a mano. Hasta la 0.2.2 valía para toda la API REST y permitía saltarse los límites del plugin. Las contraseñas creadas a mano en el perfil siguen valiendo para la API REST según el rol del usuario: si no se quieren, hay que desactivarlas para esos usuarios con un plugin de seguridad o un filtro (`wp_is_application_passwords_available_for_user`), sabiendo que eso impide también crear la conexión. Análisis en [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) e informe para sistemas en [docs/INFORME-SEGURIDAD.md](docs/INFORME-SEGURIDAD.md).
+- **La contraseña de la conexión solo vale para el MCP** (desde la 0.3.0): en `wp/v2`, `batch` y XML-RPC responde 403 (`wp_connect_mcp_password_scope`), y el MCP rechaza las contraseñas creadas a mano. Hasta la 0.2.2 valía para toda la API REST y permitía saltarse los límites del plugin.
+- **Un usuario con acceso de Claude solo usa la API por el MCP** (desde la 0.4.5, sin excepciones): si tiene algún paquete, sus contraseñas de aplicación creadas a mano se rechazan en la API REST y en XML-RPC (`wp_connect_mcp_api_blocked`), y XML-RPC con su contraseña normal también. El rechazo queda en el registro (una vez por usuario y hora). No cambia el escritorio: puede entrar en `wp-admin`, ver la vista previa de sus borradores y usar el editor, que trabaja con la sesión del navegador. Dejan de funcionar las aplicaciones que usen contraseñas de aplicación de ese usuario (por ejemplo, la app móvil de WordPress): si otra integración necesita la API, debe usar otro usuario. No cubre plugins de autenticación de terceros (JWT, OAuth, Basic Auth con la contraseña normal): si el sitio los tiene, revisar con sistemas. Análisis en [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) e informe para sistemas en [docs/INFORME-SEGURIDAD.md](docs/INFORME-SEGURIDAD.md).
 - **Paquetes por usuario:** sin paquetes no hay acceso; con ellos, solo sus herramientas. Se imponen en el servidor, no en las skills de Claude. Ver «Dar y quitar acceso».
 - **Credencial en los argumentos de `claude mcp add`:** al guardar la conexión, la cabecera `Authorization` (usuario y contraseña en base64) va como argumento de `claude` durante un instante, así que en equipos con auditoría de procesos (EDR, Sysmon, auditd) puede quedar en sus registros. Las comprobaciones con `curl` de los bloques ya la pasan por la entrada estándar. Si sistemas lo considera un riesgo, revocar la conexión tras configurar el equipo y crear otra.
 - **Elementor:** `get-template-status` solo comprueba si existen plantillas publicadas aplicables al blog; no lee ni modifica su contenido. Ni el plugin ni la API de WordPress editan el diseño de Elementor (se guarda en `_elementor_data`, que no está en la API).
@@ -359,7 +375,8 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 
 - **Otras conexiones al mismo sitio:** el límite de «no tocar entradas de otros» solo vale para este plugin. Si el mismo Claude Code tiene también otra conexión con más permisos (por ejemplo, Novamira o un conector de claude.ai), podría publicar o borrar por esa vía. Para que el límite sea real, quien use esta conexión no debe tener otras al mismo sitio.
 - **Publicar sin revisión:** con un Autor o superior, Claude puede publicar y modificar en directo sus entradas sin que nadie las revise. Si una persona debe revisar antes de publicar, conectar con un Colaborador.
-- **Etiquetas:** `tags` crea las que no existen, si el usuario puede asignar etiquetas. Esto es más de lo que permite WordPress por `wp/v2/tags` a un Autor o Colaborador (crear etiquetas exige `manage_categories`). Pendiente de decidir si solo se usan las existentes.
+- **Categorías y etiquetas:** con el paquete *Categorías y etiquetas*, un Autor o Colaborador puede crear categorías y etiquetas, más de lo que le permite WordPress por `wp/v2` (exige `manage_categories`). Es a propósito, controlado por el paquete y con un límite de 10 categorías por hora. Sin el paquete, solo se asignan etiquetas existentes.
+- **Leer el sitio:** con *Leer el sitio*, cualquier rol con `edit_posts` lee lo publicado de todos los autores, incluido el contenido de las páginas. Es información pública; no da acceso a borradores, privadas ni contenido con contraseña de otros.
 - **Credencial en el equipo:** queda en `~/.claude.json` (no en el historial de la terminal: tanto la página como los bloques la piden sin mostrarla). Es revocable y solo vale para el MCP de ese usuario. El botón «Copiar» la deja en el portapapeles: en equipos con historial o sincronización del portapapeles (Windows con Win+V, portapapeles universal de macOS), conviene borrarlo después.
 - **Direcciones `http://`:** los bloques de la terminal las rechazan (salvo `localhost`), porque la contraseña viajaría sin cifrar.
 - **Log de WordPress:** si el sitio tiene `WP_DEBUG_LOG` activo, comprobar que `wp-content/debug.log` no se puede descargar desde internet. En `example.com` sí se podía; es un problema del sitio, no del plugin.
@@ -400,7 +417,7 @@ curl -sS "$MCP" -K <(auth) \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
   -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 
-# 3. Listar herramientas: solo las de los paquetes del usuario (las diez, con los tres paquetes)
+# 3. Listar herramientas: solo las de los paquetes del usuario (las catorce, con los cinco paquetes)
 curl -sS "$MCP" -K <(auth) \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
@@ -483,8 +500,12 @@ Los errores de las herramientas llegan dentro de `result`, con `isError: true` y
 
 Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 
-- `tools/list` devuelve solo las herramientas de los paquetes del usuario: las diez con los tres, cinco solo con *Leer*. Sin paquetes, `initialize` da 403.
+- `tools/list` devuelve solo las herramientas de los paquetes del usuario: las catorce con los cinco, cinco solo con *Leer*. Sin paquetes, `initialize` da 403.
 - La contraseña de la conexión da 403 (`wp_connect_mcp_password_scope`) en `wp/v2/users/me` y en `wp/v2/posts`; una contraseña creada a mano en el perfil da 403 en el MCP.
+- Con algún paquete, una contraseña creada a mano en el perfil del mismo usuario da error (`wp_connect_mcp_api_blocked`) en `wp/v2/users/me`; quitándole todos los paquetes, vuelve a funcionar. El usuario sigue pudiendo entrar en el escritorio y ver la vista previa de sus borradores.
+- `get-current-user` devuelve `version` (la del plugin) y `password_scope: "mcp"`.
+- `create-category`: crea una categoría y, repetida con el mismo nombre o slug, devuelve la misma con `created: false`; sin el paquete, `Permission denied`. `create-post` con una etiqueta que no existe: con el paquete se crea; sin él, error con la lista de las que faltan y no se crea la entrada.
+- *Leer el sitio*: `list-published-posts` incluye entradas publicadas de otros autores; `list-pages`, las páginas publicadas; `get-published` devuelve el esquema sin `content` y, con `include_content: true`, el contenido. Un borrador, una privada o una página con contraseña dan el mismo error que un ID inexistente.
 - Con *Leer* + *Escribir*, `trash-post` da `Permission denied`. Quitar todos los paquetes a un usuario revoca sus conexiones (`claude mcp get` deja de conectar) y queda en el registro.
 - El registro de uso de *Usuarios → Acceso de Claude* muestra las herramientas usadas, los accesos denegados y los cambios de permisos.
 - `/wp-json/mcp/mcp-adapter-default-server` da 404 (servidor por defecto desactivado), salvo con `wp_connect_mcp_keep_default_server`.
@@ -518,7 +539,9 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 | `Permission denied` con un Autor o Colaborador | La entrada es de otro usuario: estos roles solo editan las suyas. |
 | «Solo se pueden modificar o borrar las entradas creadas por este usuario» | La entrada es de otro usuario. Pasa también con Editor y Administrador: el plugin solo modifica y borra las propias. |
 | La respuesta es una página HTML («CrowdSec Ban», «Access denied», Cloudflare) | El cortafuegos del sitio ha bloqueado la IP, normalmente por muchas llamadas seguidas. No reintentar: esperar a que se levante o pedírselo a sistemas, y usar `schedule-posts` o llamadas en serie. |
-| Menos de diez herramientas | Es lo normal si el usuario no tiene los tres paquetes. Si los tiene, revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
+| `wp_connect_mcp_api_blocked` con una contraseña creada a mano | Es lo esperado: el usuario tiene acceso de Claude y solo puede usar la API por el MCP. Para otra integración, usar otro usuario. |
+| `wp_connect_mcp_tags_not_found` | La etiqueta no existe y el usuario no tiene el paquete *Categorías y etiquetas*. Usar una existente o pedir el paquete. |
+| Menos de catorce herramientas | Es lo normal si el usuario no tiene los cinco paquetes. Si los tiene, revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
 
 ## Desarrollo
 
