@@ -38,6 +38,7 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Pendientes
 
+- [ ] Conexión de Claude Code `wp-connect-mcp-` + dominio de pruebas quitada el 04/11/2026: revocar su contraseña en el perfil de `test` (*Usuarios → Acceso de Claude* o el perfil), y crear una nueva desde la página cuando se pruebe la 0.4.5.
 - [x] Commit de la 0.4.5 en `main` (sin tag ni push) y zip `wp-connect-mcp-0.4.5.zip` en la raíz del repositorio. Hecho el 04/11/2026, a petición de Adrián, que pidió numerarla 0.4.5 en lugar de 0.5.0.
 - [ ] Subir la 0.4.5 al sitio de pruebas: ficheros nuevos `includes/Abilities/CreateCategory.php`, `ListPages.php`, `ListPublishedPosts.php`, `GetPublished.php`, `includes/Support/ContentOutline.php` y `PublishedContent.php`; cambiados `wp-connect-mcp.php`, `includes/Plugin.php`, `includes/Security/Grants.php`, `Guard.php`, `ApplicationPasswordScope.php`, `includes/Admin/GrantsPage.php`, `includes/Support/PostInput.php` e `includes/Abilities/GetCurrentUser.php`; `vendor/` no cambia (autoload PSR-4). Después, con `test` (Autor, confirmado con `get-current-user`) y la lista de comprobación del README:
   - `get-current-user` con `version: 0.4.5` y `password_scope: mcp`;
@@ -258,6 +259,7 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 - Documentación: README (tablas, campos, límites, seguridad, comprobación y problemas), CHANGELOG, docs/ALTERNATIVAS.md y docs/INFORME-SEGURIDAD.md. El artifact del informe de seguridad no se ha actualizado.
 - Simulación fuera de WordPress: 37 de 37.
 - Numerada 0.4.5 (no 0.5.0) a petición de Adrián; commit en `main` y zip generado desde él, borrando el de la 0.4.0.
+- Quitada de Claude Code (configuración de usuario), a petición de Adrián, la conexión `wp-connect-mcp-` + dominio de pruebas (usuario `test`). Las de Novamira de otros sitios no se tocan. El conector de claude.ai «WP NovaMira wwwarcelona test site» no se puede quitar desde aquí.
 
 ### 03/11/2026
 
