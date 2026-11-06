@@ -2,6 +2,18 @@
 
 Cambios por versión publicada. El día a día (pruebas, decisiones, pendientes) está en [ESTADO.md](ESTADO.md).
 
+## 0.4.6 (sin publicar)
+
+Puntos 19 a 23 de `post-create-wwwarcelona/docs/requisitos-wp-connect-mcp.md` (reunión del 04/11/2026 y prueba del 05/11/2026).
+
+- **`update-post` con `replace`:** sustituciones `{search, replace}` sobre el contenido guardado, en orden, sin reenviar el contenido entero. Cada búsqueda debe aparecer exactamente una vez; si una falla, no se cambia nada (`wp_connect_mcp_replace_not_unique`, con su número y cuántas veces aparece). No se admite junto a `content`. La respuesta trae `content_hash`, como siempre.
+- **Nueva herramienta `list-templates`** (paquete nuevo *Plantillas de Elementor*, `plantillas-elementor`): plantillas guardadas de Elementor publicadas de tipo sección, contenedor o página, con `id`, `title`, `type`, `modified` y `shortcode`, sin su contenido.
+- **Insertar plantillas guardadas en las entradas:** con ese paquete, `create-post` y `update-post` aceptan `<!-- wp:shortcode -->[elementor-template id="N"]<!-- /wp:shortcode -->` en el contenido, solo con el atributo `id` y solo de plantillas publicadas de esos tipos. **Cambia el comportamiento:** sin el paquete, añadir ese shortcode da error (`wp_connect_mcp_templates_not_allowed`), y con una plantilla no válida, `wp_connect_mcp_invalid_template`. Los que ya estaban en la entrada no se comprueban.
+- **Nueva herramienta `update-media`** (paquete *Escribir*, ampliado): cambia el `alt` y el título de una imagen subida por el mismo usuario. Límite de 60 por hora.
+- **Campo `reviewed_by`** en `create-post` y `update-post` (y en la respuesta de `get-post`): quién firma o revisa la entrada, para el E-E-A-T. Se guarda en el campo personalizado `wp_connect_mcp_reviewed_by` (filtro `wp_connect_mcp_reviewed_by_meta_key`) y no cambia el autor.
+- La descripción del servidor MCP y la de `update-post` indican al agente que use `replace` para cambiar fragmentos.
+- El paquete nuevo no se da a nadie automáticamente; quien tiene *Escribir* recibe `update-media`.
+
 ## 0.4.5 (sin publicar)
 
 Peticiones de la reunión «Automatització IA Posts» (02/11/2026), recogidas en los puntos 15 a 18 de `post-create-wwwarcelona/docs/requisitos-wp-connect-mcp.md`.

@@ -5,6 +5,7 @@ namespace WpConnectMcp\Abilities;
 use WP_Error;
 use WpConnectMcp\Plugin;
 use WpConnectMcp\Security\Guard;
+use WpConnectMcp\Support\ContentReplace;
 use WpConnectMcp\Support\PostAccess;
 use WpConnectMcp\Support\PostFormatter;
 use WpConnectMcp\Support\PostInput;
@@ -20,13 +21,14 @@ final class UpdatePost
     {
         wp_register_ability(self::NAME, Guard::protect(self::NAME, [
             'label' => 'Editar entrada',
-            'description' => 'Modifica solo los campos indicados de una entrada (post) creada por este usuario. Puede pasarla a borrador, pendiente, programada o publicada (si el usuario puede publicar). Publicar una programada la publica ahora. Para programar varias entradas, usar schedule-posts.',
+            'description' => 'Modifica solo los campos indicados de una entrada (post) creada por este usuario. Puede pasarla a borrador, pendiente, programada o publicada (si el usuario puede publicar). Publicar una programada la publica ahora. Para cambiar solo unos fragmentos del contenido (por ejemplo, añadir enlaces), usar replace en lugar de reenviar content. Para programar varias entradas, usar schedule-posts.',
             'category' => Plugin::CATEGORY,
             'input_schema' => [
                 'type' => 'object',
                 'properties' => [
                     'id' => ['type' => 'integer', 'minimum' => 1, 'description' => 'ID de la entrada.'],
                 ] + PostInput::schemaProperties() + [
+                    'replace' => ContentReplace::schema(),
                     'return_content' => [
                         'type' => 'boolean',
                         'default' => false,
@@ -58,6 +60,20 @@ final class UpdatePost
         $post = PostAccess::find($input['id']);
         if (is_wp_error($post)) {
             return $post;
+        }
+
+        if (array_key_exists('replace', $input)) {
+            if (array_key_exists('content', $input)) {
+                return new WP_Error('wp_connect_mcp_invalid_replace', 'replace no se admite junto a content: usa uno u otro.', ['status' => 400]);
+            }
+
+            $content = ContentReplace::apply($post->post_content, $input['replace']);
+            if (is_wp_error($content)) {
+                return $content;
+            }
+
+            $input['content'] = $content;
+            unset($input['replace']);
         }
 
         $extras = PostExtras::validate($input);

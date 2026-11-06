@@ -1,8 +1,8 @@
 # Seguridad de WP Connect MCP
 
-Informe para sistemas · Versión 0.3.0 · 31/10/2026 · Actualizado con la 0.4.5 el 04/11/2026
+Informe para sistemas · Versión 0.4.6 · 06/11/2026 · Primera edición con la 0.3.0, el 31/10/2026
 
-Qué se ha cerrado en la 0.3.0, qué riesgo queda y qué necesitamos que decidáis antes de usar el plugin en producción. Versión local del informe publicado como artifact; el detalle técnico está en el [README](../README.md), [ALTERNATIVAS.md](ALTERNATIVAS.md) y el [CHANGELOG](../CHANGELOG.md).
+Qué se ha cerrado desde la 0.3.0, qué riesgo queda y qué necesitamos que decidáis antes de usar el plugin en producción. Versión local del informe publicado como artifact; el detalle técnico está en el [README](../README.md), [ALTERNATIVAS.md](ALTERNATIVAS.md) y el [CHANGELOG](../CHANGELOG.md).
 
 ## Resumen: la contraseña de Claude ya solo sirve para el MCP
 
@@ -13,14 +13,27 @@ La 0.3.0:
 - limita esa contraseña a la ruta del MCP;
 - añade permisos por usuario, registro de uso y límites por hora.
 
-Está probada fuera de WordPress; **falta probarla en el sitio de pruebas y vuestro visto bueno** antes de llevarla a producción.
+La 0.4.5 añade que un usuario con acceso de Claude solo pueda usar la API de WordPress por el MCP, y la 0.4.6, herramientas nuevas del plugin de posts sin ampliar ese alcance.
+
+La 0.4.5 está instalada en el sitio de pruebas desde el 05/11/2026, pero faltan las pruebas de rechazo. La 0.4.6 solo está probada fuera de WordPress. **Falta probarlas en el sitio de pruebas y vuestro visto bueno** antes de llevarlas a producción.
 
 | Cifra | Qué es |
 |---|---|
 | **403** | Respuesta de la contraseña de Claude fuera del MCP: `wp/v2`, `batch` y XML-RPC. |
-| **3** | Paquetes por usuario: Leer, Escribir y Papelera. Sin paquetes, sin acceso. |
-| **34** | Comprobaciones locales, todas correctas, en una simulación con funciones de WordPress sustituidas. |
-| **10** | Hallazgos de la revisión: 6 arreglados en la 0.3.0, 3 arreglados en parte y 1 pendiente de decisión. |
+| **6** | Paquetes por usuario: Leer, Escribir, Papelera, Categorías y etiquetas, Leer el sitio y Plantillas de Elementor. Sin paquetes, sin acceso. |
+| **16** | Herramientas como máximo, todas sobre entradas propias o sobre contenido publicado. Ninguna borra definitivamente. |
+| **10** | Hallazgos de la revisión del 31/10: 7 arreglados o documentados y 3 arreglados en parte. |
+
+## Qué cambia en la 0.4.6 (06/11/2026, sin probar en el sitio)
+
+Peticiones del plugin de posts tras la reunión del 04/11/2026 y la prueba del 05/11/2026. Ninguna da acceso a contenido de otros usuarios ni a la API fuera del MCP:
+
+| Punto | Antes | 0.4.6 |
+|---|---|---|
+| Cambiar unos fragmentos de una entrada | Había que reenviar el contenido entero. | `replace` en `update-post`: solo entradas propias, cada búsqueda debe aparecer una vez y, si una falla, no cambia nada. El resultado pasa por el mismo filtro (`wp_kses_post`). |
+| Plantillas guardadas de Elementor | No se listaban; el shortcode `[elementor-template]` se podía escribir como cualquier otro, con cualquier ID. | Paquete nuevo *Plantillas de Elementor*: `list-templates` (solo publicadas, sin contenido) e insertar `[elementor-template id="N"]` solo de plantillas publicadas de sección, contenedor o página. Sin el paquete, el contenido no puede añadir ese shortcode. |
+| Texto alternativo de una imagen ya subida | Solo al subirla. | `update-media` (paquete *Escribir*): solo imágenes subidas por el mismo usuario; 60 por hora. |
+| Quién revisa la entrada | — | `reviewed_by`: un campo personalizado de texto; no cambia el autor. |
 
 ## Qué cambia en la 0.4.5 (04/11/2026, sin probar en el sitio)
 
@@ -57,7 +70,7 @@ Todo se impone en WordPress. Las skills de Claude pueden avisar de lo que falta,
 | Paso | Qué comprueba | Si falla |
 |---|---|---|
 | 1. Contraseña | Fuera de la ruta del MCP, la contraseña de Claude no vale. Dentro, solo se aceptan las creadas desde la página del plugin. | 403: no se abre sesión. |
-| 2. Paquete | El usuario tiene el paquete que contiene la herramienta: Leer, Escribir o Papelera. | La herramienta no aparece y da `Permission denied`. |
+| 2. Paquete | El usuario tiene el paquete que contiene la herramienta (uno de los seis). | La herramienta no aparece y da `Permission denied`. |
 | 3. Límite por hora | Las herramientas que escriben cuentan sus usos por usuario y hora. | Error claro hasta la hora siguiente. |
 | 4. Rol de WordPress | Las capacidades de siempre: `edit_posts`, `publish_posts`, `upload_files`… | Por ejemplo, un Colaborador no programa ni publica. |
 | 5. Entrada propia | Modificar, publicar y enviar a la papelera solo vale para entradas creadas por ese usuario, con cualquier rol. | Las de otros se rechazan, también con un Editor. |
@@ -80,12 +93,13 @@ Revisión de toda la documentación y del código, hecha aparte de la implementa
 | Contraseña creada aunque no estén disponibles | Baja | Arreglado | Se comprueba la disponibilidad antes de crear nada. |
 | Portapapeles y pegado fuera de sitio | Baja | Documentado | La página avisa de pegar la contraseña solo cuando la terminal la pide; el README recomienda borrar el portapapeles. |
 
-## Lo que la 0.3.0 no resuelve
+## Riesgo que queda
 
 - **Dentro de sus paquetes, la credencial hace lo mismo que Claude.** Por ejemplo, programar entradas que se publicarán solas. Se mitiga con revisión humana antes de la fecha y con el registro.
 - ~~**Las contraseñas creadas a mano siguen valiendo para la API REST** según el rol.~~ Resuelto en la 0.4.5 para los usuarios con paquetes: solo pueden usar la API por el MCP.
 - **La credencial queda en el equipo** (`~/.claude.json`), en texto plano, y pasa por los argumentos de `claude mcp add` al guardarla.
 - **Contenido erróneo o inyectado** desde el Excel o desde una web: el HTML se filtra con `wp_kses_post`, pero el texto en sí lo tiene que revisar una persona.
+- **Plantillas de Elementor (0.4.6):** con el paquete *Plantillas de Elementor*, el usuario puede mostrar en sus entradas cualquier plantilla guardada publicada de sección, contenedor o página, también las creadas por otros (por ejemplo, con un formulario). Los demás shortcodes del contenido no los comprueba el plugin, igual que el editor de WordPress con un Autor.
 - **Dependencia del adapter MCP de WordPress**, todavía en versión 0.x e incluido en `vendor/`.
 
 ## Condiciones mínimas para producción
@@ -103,9 +117,9 @@ Revisión de toda la documentación y del código, hecha aparte de la implementa
 
 ## Lo que necesitamos de sistemas: cuatro decisiones
 
-1. **¿Aceptáis la 0.3.0 en producción con las condiciones mínimas?** Si no, la alternativa es usarlo solo en staging y pasar las entradas a producción por otra vía.
+1. **¿Aceptáis la versión actual (0.4.6) en producción con las condiciones mínimas, una vez probada en el sitio de pruebas?** Si no, la alternativa es usarlo solo en staging y pasar las entradas a producción por otra vía.
 2. **¿Es aceptable que la credencial pase por los argumentos de `claude mcp add`?** Ocurre una vez, al guardar la conexión. Si vuestros EDR registran líneas de comando, conviene saberlo.
-3. **¿Qué hacemos en los sitios con Novamira?** La 0.3.0 desactiva el servidor que usa Novamira. O se mantiene con un filtro en un mu-plugin, o se separan esos sitios de los de marketing.
+3. **¿Qué hacemos en los sitios con Novamira?** Desde la 0.3.0 se desactiva el servidor que usa Novamira, y desde la 0.4.5 un usuario con paquetes no puede usar otras contraseñas de aplicación. O se mantiene con un filtro en un mu-plugin, o se separan esos sitios de los de marketing.
 4. **¿Caducidad automática de las contraseñas sin uso?** Por ejemplo, revocar las que lleven 60 días sin usarse.
 
 ## Prueba rápida en un sitio

@@ -9,6 +9,7 @@ use WpConnectMcp\Abilities\CreateCategory;
 use WpConnectMcp\Abilities\CreatePost;
 use WpConnectMcp\Abilities\SchedulePosts;
 use WpConnectMcp\Abilities\TrashPost;
+use WpConnectMcp\Abilities\UpdateMedia;
 use WpConnectMcp\Abilities\UpdatePost;
 use WpConnectMcp\Abilities\UploadMedia;
 use WpConnectMcp\Plugin;
@@ -30,6 +31,7 @@ final class Guard
         UpdatePost::NAME => 120,
         SchedulePosts::NAME => 120,
         UploadMedia::NAME => 60,
+        UpdateMedia::NAME => 60,
         TrashPost::NAME => 30,
         CreateCategory::NAME => 10,
     ];

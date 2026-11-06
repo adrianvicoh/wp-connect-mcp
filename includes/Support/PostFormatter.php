@@ -40,6 +40,7 @@ final class PostFormatter
             'seo_description' => (string) get_post_meta($post->ID, '_yoast_wpseo_metadesc', true),
             'focus_keyword' => (string) get_post_meta($post->ID, '_yoast_wpseo_focuskw', true),
             'featured_image' => get_post_thumbnail_id($post->ID) ?: null,
+            'reviewed_by' => PostExtras::reviewedBy($post->ID),
         ];
     }
 
@@ -104,6 +105,7 @@ final class PostFormatter
             'seo_description' => ['type' => 'string'],
             'focus_keyword' => ['type' => 'string'],
             'featured_image' => ['type' => ['integer', 'null']],
+            'reviewed_by' => ['type' => 'string', 'description' => 'Quién firma o revisa la entrada (vacío si no consta).'],
         ];
         $schema['required'][] = 'content';
 

@@ -12,14 +12,16 @@ Plugin de WordPress que expone un servidor MCP propio para que Claude u otros ag
 | `wp-connect-mcp-get-current-user` | Indica el usuario, sus roles, las capacidades relevantes y los paquetes de herramientas que tiene otorgados. |
 | `wp-connect-mcp-get-template-status` | Comprueba si hay plantillas publicadas de Elementor Pro que se aplican a la entrada y al archivo del blog, y lista todas las de cada tipo con sus condiciones. |
 | `wp-connect-mcp-create-post` | Crea una entrada como borrador, pendiente, programada o publicada. Devuelve un resumen sin el contenido. |
-| `wp-connect-mcp-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. Devuelve un resumen sin el contenido. |
+| `wp-connect-mcp-update-post` | Modifica solo los campos indicados de una entrada creada por el usuario; también la publica. Puede cambiar solo unos fragmentos del contenido (`replace`) sin reenviarlo entero. Devuelve un resumen sin el contenido. |
 | `wp-connect-mcp-schedule-posts` | Programa a la vez hasta 20 entradas creadas por el usuario, cada una con su fecha. Si alguna no se puede programar, no cambia ninguna. |
 | `wp-connect-mcp-upload-media` | Sube una imagen en base64, opcionalmente adjunta a una entrada propia. |
+| `wp-connect-mcp-update-media` | Cambia el texto alternativo y el título de una imagen subida por el usuario. |
 | `wp-connect-mcp-trash-post` | Envía a la papelera una entrada creada por el usuario, también si ya está publicada. |
 | `wp-connect-mcp-create-category` | Crea una categoría de entradas; si ya existe con ese slug (o con ese nombre bajo el mismo padre), devuelve la existente. |
 | `wp-connect-mcp-list-pages` | Lista las páginas publicadas (id, título, URL y padre), sin el contenido. |
 | `wp-connect-mcp-list-published-posts` | Lista las entradas publicadas de cualquier autor (id, título, URL, categorías y extracto), sin el contenido. |
 | `wp-connect-mcp-get-published` | Lee una entrada o página publicada: por defecto solo su esquema (encabezados, enlaces y palabras); el contenido, si se pide. |
+| `wp-connect-mcp-list-templates` | Lista las plantillas guardadas de Elementor publicadas (sección, contenedor o página) con su shortcode, para insertarlas en una entrada propia (por ejemplo, un CTA). |
 
 Cada tool es una ability de WordPress con el mismo nombre y `/` tras el prefijo `wp-connect-mcp` (`wp-connect-mcp/list-posts`, etc.), en la categoría `wp-connect-mcp`. Solo se exponen en el servidor `/wp-json/wp-connect-mcp/mcp`, y cada usuario solo ve y usa las de los **paquetes** que le haya dado un administrador (ver «Dar y quitar acceso»).
 
@@ -30,10 +32,11 @@ Para usar una herramienta hacen falta dos cosas: el **paquete** que la contiene,
 | Paquete | Herramientas |
 |---|---|
 | **Leer** (`posts-lectura`) | `list-posts`, `list-categories`, `get-post`, `get-current-user`, `get-template-status` |
-| **Escribir** (`posts-escritura`) | `create-post`, `update-post`, `schedule-posts`, `upload-media` |
+| **Escribir** (`posts-escritura`) | `create-post`, `update-post`, `schedule-posts`, `upload-media`, `update-media` |
 | **Papelera** (`posts-papelera`) | `trash-post` |
 | **Categorías y etiquetas** (`categorias-escritura`) | `create-category`. Además, con este paquete `create-post` y `update-post` pueden asignar etiquetas que aún no existen (se crean). |
 | **Leer el sitio** (`sitio-lectura`) | `list-pages`, `list-published-posts`, `get-published`: solo lo publicado, de cualquier autor (lo mismo que ve un visitante). Para el enlazado interno. |
+| **Plantillas de Elementor** (`plantillas-elementor`) | `list-templates`. Además, con este paquete `create-post` y `update-post` pueden añadir al contenido plantillas guardadas con `[elementor-template id="N"]` (solo las publicadas de tipo sección, contenedor o página). |
 
 Sin ningún paquete, el usuario no puede crear la conexión ni abrir sesión MCP (403). Con paquetes, `tools/list` solo muestra las herramientas de esos paquetes, y las demás dan `Permission denied`.
 
@@ -48,9 +51,11 @@ Sin ningún paquete, el usuario no puede crear la conexión ni abrir sesión MCP
 | `update-post` | `edit_posts`, que la entrada sea suya y `edit_post`; para programar o publicar, `publish_post` | Solo las suyas no publicadas, sin programar ni publicar | Solo las suyas: también programar, publicar y despublicar | Solo las suyas |
 | `schedule-posts` | `edit_posts` y `publish_posts`; cada entrada, suya y con `edit_post` y `publish_post` | No | Solo las suyas | Solo las suyas |
 | `upload-media` | `upload_files`; con `post_id`, además entrada propia y `edit_post` | No por defecto | Sí | Sí |
+| `update-media` | `upload_files`, que la imagen la haya subido el usuario y `edit_post` sobre ella | No por defecto | Solo las suyas | Solo las suyas |
 | `trash-post` | `delete_posts`, que la entrada sea suya y `delete_post` | Solo las suyas no publicadas | Solo las suyas, también publicadas | Solo las suyas |
 | `create-category` | `edit_posts` (y el paquete; no exige `manage_categories`) | Sí | Sí | Sí |
 | `list-pages`, `list-published-posts`, `get-published` | `edit_posts`; solo contenido publicado y sin contraseña | Sí | Sí | Sí |
+| `list-templates` | `edit_posts`; solo plantillas publicadas | Sí | Sí | Sí |
 
 - Un **Suscriptor** no puede usar ninguna: todas dan `Permission denied`, sin revelar si un ID existe.
 - **Modificar y borrar, solo entradas propias**, también para Editores y Administradores. Leer y listar sí incluye las de otros cuando el rol lo permite.
@@ -67,17 +72,22 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 | `get-post` | `id` (obligatorio). |
 | `get-current-user` | Sin campos. |
 | `get-template-status` | Sin campos. |
-| `create-post` | `title` (obligatorio), `slug`, `content`, `excerpt`, `status`, `scheduled_date`, `categories`, `tags`, `seo_title`, `seo_description`, `focus_keyword`, `featured_image`, `return_content`. |
-| `update-post` | `id` (obligatorio) y cualquiera de los campos de `create-post`. Solo cambia los que se envían. |
+| `create-post` | `title` (obligatorio), `slug`, `content`, `excerpt`, `status`, `scheduled_date`, `categories`, `tags`, `seo_title`, `seo_description`, `focus_keyword`, `featured_image`, `reviewed_by`, `return_content`. |
+| `update-post` | `id` (obligatorio), cualquiera de los campos de `create-post` y `replace` (en lugar de `content`). Solo cambia los que se envían. |
 | `schedule-posts` | `posts` (obligatorio): lista de 1 a 20 `{id, scheduled_date}`, sin IDs repetidos. |
 | `upload-media` | `filename` y `data` (base64) obligatorios; `alt`, `title` y `post_id` opcionales. |
+| `update-media` | `id` (obligatorio), `alt` y `title` (al menos uno). |
 | `trash-post` | `id` (obligatorio). |
 | `create-category` | `name` (obligatorio, máximo 200 caracteres), `slug`, `parent` (ID de una categoría existente). |
 | `list-pages` | `search`, `parent` (ID; 0 para las de primer nivel), `per_page` (1–100, por defecto 20), `page`. Ordena por orden de menú y título. |
 | `list-published-posts` | `search`, `category` (ID), `per_page` (1–100, por defecto 20), `page`. Ordena de la más reciente a la más antigua. |
 | `get-published` | `id` (obligatorio), `include_content` (por defecto `false`). |
+| `list-templates` | `search` (en el título), `type` (`section`, `container` o `page`), `per_page` (1–100, por defecto 50), `page`. |
 
 - `content`: HTML o marcado de bloques; se filtra con las etiquetas permitidas en entradas.
+- `replace` (solo `update-post`): lista de 1 a 100 sustituciones `{search, replace}` sobre el contenido guardado, aplicadas en orden. Cada `search` debe aparecer **exactamente una vez** en el contenido tal como está en ese momento (con el HTML y las entidades guardados, por ejemplo `&amp;`); si una no aparece o aparece más de una vez, no se cambia nada y el error dice cuál falla y cuántas veces aparece (`wp_connect_mcp_replace_not_unique`). No se admite junto a `content`. El resultado se filtra como `content`, y `content_hash` de la respuesta permite comparar con la copia local. Sirve para añadir enlaces internos o cambiar un párrafo enviando unos cientos de bytes en lugar del texto entero.
+- **Plantillas guardadas de Elementor en el contenido:** con el paquete *Plantillas de Elementor*, `content` (o `replace`) puede añadir `<!-- wp:shortcode -->[elementor-template id="N"]<!-- /wp:shortcode -->` con el ID de una plantilla de `list-templates`. Solo se acepta esa forma exacta (solo el atributo `id`) y solo plantillas publicadas, sin contraseña, de tipo sección, contenedor o página; si no, error `wp_connect_mcp_invalid_template`. Sin el paquete, añadir ese shortcode da `wp_connect_mcp_templates_not_allowed`. Los que ya estaban en la entrada no se vuelven a comprobar. El shortcode lo pinta Elementor Pro al mostrar la entrada; los demás shortcodes no cambian (los trata WordPress como en el editor).
+- `reviewed_by`: quién firma o revisa la entrada (texto plano, máximo 150 caracteres; vacío lo quita), para el E-E-A-T. No cambia el autor: se guarda en el campo personalizado `wp_connect_mcp_reviewed_by`, que la plantilla de Elementor puede mostrar con la etiqueta dinámica «Campo personalizado». Para usar un campo que el sitio ya tenga (por ejemplo, de ACF), filtro `wp_connect_mcp_reviewed_by_meta_key` (no admite campos protegidos, con guion bajo). `get-post`, `create-post` y `update-post` lo devuelven.
 - `status`: `draft` (por defecto), `pending`, `future` o `publish`. `publish` publica ahora: si la entrada estaba programada, se publica con la fecha y hora actuales. No se admite junto a `scheduled_date`.
 - `scheduled_date`: ISO 8601, en el futuro (por ejemplo, `2026-10-28T09:00:00+01:00`). Sin zona horaria se usa la del sitio. Implica `future`.
 - `categories`: IDs de categorías existentes (las nuevas se crean antes con `create-category`). `tags`: nombres. Las que no existen solo se crean si el usuario tiene el paquete *Categorías y etiquetas* o `manage_categories`; si no, la operación se rechaza entera (`wp_connect_mcp_tags_not_found`) y el error dice cuáles faltan. Las dos listas sustituyen a las actuales.
@@ -90,6 +100,8 @@ Campos de cada herramienta (Claude los ve con su descripción en `tools/list`):
 - `get-template-status`: para `single_post` y `archive`, `exists`, `id`, `title` y `conditions` indican la plantilla que se aplica al blog, y `templates` lista todas las publicadas de ese tipo con sus condiciones y `covers_blog`. Cubren el blog, en el archivo, las condiciones de Elementor `include/general`, `include/archive` (todos los archivos), `include/archive/post_archive` y las de categorías y etiquetas (con o sin ID); en la entrada, `include/general`, `include/singular` y `include/singular/post`. Una exclusión amplia del mismo grupo (por ejemplo, `exclude/archive`) lo anula. Las plantillas solo de autor, fecha, búsqueda, una entrada concreta o una categoría de entradas aparecen en `templates` con `covers_blog: false`.
 - `create-category`: responde `id`, `name`, `slug`, `parent`, `link` y `created`. Si ya existe una categoría con ese slug (el enviado o el que sale del nombre), o con el mismo nombre bajo el mismo padre, devuelve esa con `created: false` y no crea otra: se puede repetir sin duplicar.
 - **Leer el sitio** (`list-pages`, `list-published-posts`, `get-published`): solo entradas y páginas publicadas y sin contraseña, de cualquier autor. Borradores, privadas, con contraseña, otros tipos o IDs inexistentes dan el mismo error («No existe ningún contenido publicado…»), sin revelar si el ID existe. Las listas no llevan el contenido. `get-published` devuelve por defecto el esquema: `headings` (`level`, `text`), `links` (`href`, `text`, `internal`: relativo o del mismo dominio, con o sin `www.`), `word_count`, `excerpt` (el manual o las primeras 40 palabras), y `categories` en las entradas; con `include_content: true`, también `content`. Así el enlazado lee unos cientos de bytes por página en lugar del texto entero, y pide el contenido solo para buscar un ancla. `built_with_elementor: true` avisa de que el contenido es la copia en HTML que guarda Elementor, que puede no reflejar el último cambio. `list-posts` y `get-post` no cambian: son para las entradas que el usuario puede editar.
+- `update-media`: solo imágenes subidas por el mismo usuario; las de otros dan el mismo error que un ID inexistente. No cambia el archivo ni el contenido de las entradas que la usan: si el `alt` también está escrito en una etiqueta `<img>` del contenido, hay que cambiarlo ahí con `update-post` (`replace`).
+- `list-templates`: responde `templates` (`id`, `title`, `type`, `modified`, `shortcode`), `total`, `total_pages` y `elementor_active`. Solo las plantillas guardadas (*Plantillas → Plantillas guardadas*) publicadas de tipo sección, contenedor o página: no las de cabecera, pie, entrada o archivo del Theme Builder (esas las comprueba `get-template-status`). No devuelve su contenido.
 - `upload-media` solo admite JPEG, PNG, WebP y GIF reales, no solo por extensión; máximo 2 MB y 40 megapíxeles por defecto. Rechaza un envío demasiado grande antes de decodificarlo. No admite URLs remotas para evitar SSRF. Los límites se cambian con los filtros `wp_connect_mcp_max_upload_bytes` y `wp_connect_mcp_max_upload_pixels`.
 - Cualquier otro campo (por ejemplo, `post_type` o `author`) se rechaza.
 
@@ -100,9 +112,9 @@ Límites:
 - En entradas propias ya publicadas se puede editar el contenido, que cambia en directo, y también cambiar su estado: volver a borrador o pendiente la despublica. En entradas privadas se puede editar el contenido, pero no su estado ni su fecha.
 - **Solo modifica, publica y borra entradas propias** (las creadas por el usuario de la conexión), aunque su rol permita tocar las de otros: las demás dan «Solo se pueden modificar o borrar las entradas creadas por este usuario». Leer y listar sí incluye las de otros si el rol lo permite.
 - **Borrar es enviar a la papelera**: una persona puede restaurar la entrada desde el escritorio. Vuelve como borrador y sin programar, aunque estuviera programada o publicada: para que salga hay que volver a programarla o publicarla. Vale para cualquier estado: si la entrada estaba publicada, deja de verse en el sitio al momento. Un Colaborador no puede borrar sus entradas ya publicadas (WordPress no se lo permite). Si el sitio tiene la papelera desactivada (`EMPTY_TRASH_DAYS` a 0), no se borra nada.
-- No borra definitivamente ni toca páginas, usuarios, ajustes, plugins o temas. Solo sube imágenes del usuario autenticado. El servidor expone como mucho estas catorce tools, no las meta-tools de descubrimiento. Crear categorías y leer páginas no cambia esto: no se editan páginas ni categorías existentes, ni se borra ninguna.
+- No borra definitivamente ni toca páginas, usuarios, ajustes, plugins o temas. Solo sube imágenes del usuario autenticado. El servidor expone como mucho estas dieciséis tools, no las meta-tools de descubrimiento. Crear categorías, leer páginas y listar plantillas no cambia esto: no se editan páginas, plantillas ni categorías existentes, ni se borra ninguna.
 - **El servidor MCP por defecto del adapter queda desactivado** (`/wp-json/mcp/mcp-adapter-default-server`, con `execute-ability` y acceso con solo `read`). Si el sitio lo necesita (por ejemplo, Novamira, que lo usa), se mantiene con `add_filter('wp_connect_mcp_keep_default_server', '__return_true');` en un plugin propio o mu-plugin.
-- **Límite por hora y usuario** en las herramientas que escriben: `create-post` 30, `update-post` 120, `schedule-posts` 120 entradas (cuenta cada entrada del lote, no cada llamada), `upload-media` 60, `trash-post` 30 y `create-category` 10. Al superarlo, la herramienta responde que se ha alcanzado el máximo. Se cambian con el filtro `wp_connect_mcp_rate_limits`.
+- **Límite por hora y usuario** en las herramientas que escriben: `create-post` 30, `update-post` 120, `schedule-posts` 120 entradas (cuenta cada entrada del lote, no cada llamada), `upload-media` 60, `update-media` 60, `trash-post` 30 y `create-category` 10. Al superarlo, la herramienta responde que se ha alcanzado el máximo. Se cambian con el filtro `wp_connect_mcp_rate_limits`.
 - **Registro de uso:** cada herramienta usada, cada acceso denegado y cada cambio de permisos queda anotado (fecha, usuario, acción, ID y resultado) y se ve en *Usuarios → Acceso de Claude*. Se guardan los últimos 500 movimientos en la base de datos, no en `debug.log`.
 - Cada acción respeta las capacidades del usuario de WordPress (`edit_posts`, `edit_post`, `delete_posts`, `delete_post`, `publish_post`, asignar categorías y etiquetas). Sin `edit_posts` (por ejemplo, un Suscriptor) todas las herramientas responden `Permission denied`, sin revelar si un ID existe.
 - Las sesiones MCP van ligadas al usuario que las abre: no se pueden usar con las credenciales de otro.
@@ -123,7 +135,7 @@ El paquete `wordpress/mcp-adapter` va incluido en `vendor/` y se carga con el au
 3. Crear el usuario que va a usar Claude (ver «Conexión») y darle acceso en *Usuarios → Acceso de Claude*.
 4. Conectarlo desde *Herramientas → Conectar con Claude*, entrando con ese usuario.
 
-Para actualizar, basta con subir los ficheros cambiados; no hay que reactivar el plugin. Al pasar a la 0.3.0, quien ya tenía una conexión creada desde la página recibe los tres paquetes de entonces una sola vez (queda en el registro de uso como «(sistema)»), así que sus conexiones siguen funcionando. Las contraseñas creadas a mano en el perfil dejan de valer para el MCP. Al pasar a la 0.4.5, nadie recibe los paquetes nuevos automáticamente, y los usuarios con paquetes dejan de poder usar la API de WordPress con contraseñas creadas a mano o por XML-RPC.
+Para actualizar, basta con subir los ficheros cambiados; no hay que reactivar el plugin. Al pasar a la 0.3.0, quien ya tenía una conexión creada desde la página recibe los tres paquetes de entonces una sola vez (queda en el registro de uso como «(sistema)»), así que sus conexiones siguen funcionando. Las contraseñas creadas a mano en el perfil dejan de valer para el MCP. Al pasar a la 0.4.5, nadie recibe los paquetes nuevos automáticamente, y los usuarios con paquetes dejan de poder usar la API de WordPress con contraseñas creadas a mano o por XML-RPC. Al pasar a la 0.4.6, nadie recibe *Plantillas de Elementor*; quien tiene *Escribir* puede usar además `update-media`.
 
 ## Conexión
 
@@ -143,13 +155,13 @@ Ningún rol permite a Claude borrar definitivamente ni tocar entradas de otros u
 
 Lo hace un administrador (capacidad `promote_users`) en **Usuarios → Acceso de Claude**:
 
-- una fila por usuario que puede editar entradas, con una casilla por paquete (*Leer*, *Escribir*, *Papelera*, *Categorías y etiquetas*, *Leer el sitio*), sus conexiones con el último uso y quién hizo el último cambio y cuándo;
-- nadie tiene acceso por defecto (los paquetes *Categorías y etiquetas* y *Leer el sitio*, de la 0.4.5, tampoco se dan a quien ya tenía los otros);
+- una fila por usuario que puede editar entradas, con una casilla por paquete (*Leer*, *Escribir*, *Papelera*, *Categorías y etiquetas*, *Leer el sitio*, *Plantillas de Elementor*), sus conexiones con el último uso y quién hizo el último cambio y cuándo;
+- nadie tiene acceso por defecto (los paquetes *Categorías y etiquetas* y *Leer el sitio*, de la 0.4.5, y *Plantillas de Elementor*, de la 0.4.6, tampoco se dan a quien ya tenía los otros). Al pasar a la 0.4.6, quien tiene *Escribir* recibe con él `update-media`;
 - **un usuario con algún paquete solo puede usar la API de WordPress a través del MCP**: sus contraseñas de aplicación creadas a mano y XML-RPC dejan de funcionar (ver «Seguridad y limitaciones conocidas»). Puede seguir entrando en el escritorio;
 - al quitar todos los paquetes a un usuario, **se revocan también sus conexiones** con Claude (sus contraseñas creadas desde la página);
 - debajo, el **registro de uso**: los últimos 100 movimientos.
 
-Para un usuario de marketing que usa el plugin de Claude de posts, lo normal es *Leer* + *Escribir*, *Leer el sitio* para el enlazado interno, *Categorías y etiquetas* solo si debe poder crear categorías o etiquetas nuevas, y *Papelera* solo si debe poder retirar entradas.
+Para un usuario de marketing que usa el plugin de Claude de posts, lo normal es *Leer* + *Escribir*, *Leer el sitio* para el enlazado interno, *Categorías y etiquetas* solo si debe poder crear categorías o etiquetas nuevas, *Plantillas de Elementor* si los posts llevan un CTA u otro bloque de una plantilla guardada, y *Papelera* solo si debe poder retirar entradas.
 
 Endpoint: `https://<sitio>/wp-json/wp-connect-mcp/mcp` (es el dato que se usa en los comandos de abajo, no un comando).
 
@@ -164,7 +176,7 @@ Para cualquier persona, también si no es informática. No hay que saber el usua
 3. Elegir la pestaña del sistema (*Mac y Linux* o *Windows (PowerShell)*; se abre sola la del equipo) y pulsar **Copiar** en el comando.
 4. Abrir la terminal (Mac: *Terminal*; Windows: *PowerShell*; Linux: *Terminal*), pegar el comando y pulsar Intro.
 5. Cuando el comando la pida, copiar la **contraseña de aplicación** de la página con su botón **Copiar** y pegarla en la terminal (no se ve mientras se pega). No pegarla nunca en un chat, tampoco en el de Claude.
-6. Abrir una sesión nueva de Claude Code (las que ya estaban abiertas no ven el sitio) y preguntarle «¿Con qué usuario estás conectado a WordPress?»: debe decir el usuario de la conexión. En la terminal, `/mcp` también muestra el sitio conectado, con las herramientas de sus paquetes (10 con los tres); en la app de escritorio, `/mcp` solo dice cuántas conexiones hay.
+6. Abrir una sesión nueva de Claude Code (las que ya estaban abiertas no ven el sitio) y preguntarle «¿Con qué usuario estás conectado a WordPress?»: debe decir el usuario de la conexión. En la terminal, `/mcp` también muestra el sitio conectado, con las herramientas de sus paquetes (11 con *Leer*, *Escribir* y *Papelera*); en la app de escritorio, `/mcp` solo dice cuántas conexiones hay.
 
 Si el usuario no tiene ningún paquete, la página lo dice y no ofrece el botón: hay que pedir acceso a un administrador.
 
@@ -370,7 +382,7 @@ Las fechas sin zona horaria se interpretan en la zona del sitio (*Ajustes → Ge
 - **Un usuario con acceso de Claude solo usa la API por el MCP** (desde la 0.4.5, sin excepciones): si tiene algún paquete, sus contraseñas de aplicación creadas a mano se rechazan en la API REST y en XML-RPC (`wp_connect_mcp_api_blocked`), y XML-RPC con su contraseña normal también. El rechazo queda en el registro (una vez por usuario y hora). No cambia el escritorio: puede entrar en `wp-admin`, ver la vista previa de sus borradores y usar el editor, que trabaja con la sesión del navegador. Dejan de funcionar las aplicaciones que usen contraseñas de aplicación de ese usuario (por ejemplo, la app móvil de WordPress): si otra integración necesita la API, debe usar otro usuario. No cubre plugins de autenticación de terceros (JWT, OAuth, Basic Auth con la contraseña normal): si el sitio los tiene, revisar con sistemas. Análisis en [docs/ALTERNATIVAS.md](docs/ALTERNATIVAS.md) e informe para sistemas en [docs/INFORME-SEGURIDAD.md](docs/INFORME-SEGURIDAD.md).
 - **Paquetes por usuario:** sin paquetes no hay acceso; con ellos, solo sus herramientas. Se imponen en el servidor, no en las skills de Claude. Ver «Dar y quitar acceso».
 - **Credencial en los argumentos de `claude mcp add`:** al guardar la conexión, la cabecera `Authorization` (usuario y contraseña en base64) va como argumento de `claude` durante un instante, así que en equipos con auditoría de procesos (EDR, Sysmon, auditd) puede quedar en sus registros. Las comprobaciones con `curl` de los bloques ya la pasan por la entrada estándar. Si sistemas lo considera un riesgo, revocar la conexión tras configurar el equipo y crear otra.
-- **Elementor:** `get-template-status` solo comprueba si existen plantillas publicadas aplicables al blog; no lee ni modifica su contenido. Ni el plugin ni la API de WordPress editan el diseño de Elementor (se guarda en `_elementor_data`, que no está en la API).
+- **Elementor:** `get-template-status` solo comprueba si existen plantillas publicadas aplicables al blog, y `list-templates` lista las plantillas guardadas; ninguna lee ni modifica su contenido. Ni el plugin ni la API de WordPress editan el diseño de Elementor (se guarda en `_elementor_data`, que no está en la API). Insertar una plantilla en una entrada (`[elementor-template id="N"]`) exige el paquete *Plantillas de Elementor* y solo admite plantillas publicadas de sección, contenedor o página, así que una entrada no puede mostrar un borrador ni una plantilla privada. Quien tiene el paquete sí puede mostrar en sus entradas cualquiera de esas plantillas publicadas, también las creadas por otros: es lo que pide el CTA, y por eso va en un paquete aparte. Los demás shortcodes del contenido no los comprueba el plugin, igual que no lo hace el editor de WordPress para un Autor.
 - **Yoast SEO:** se escriben sus metadatos de título, descripción y frase clave. No se simula la puntuación del editor de Yoast; el análisis se recalcula al abrir o guardar la entrada en WordPress.
 
 - **Otras conexiones al mismo sitio:** el límite de «no tocar entradas de otros» solo vale para este plugin. Si el mismo Claude Code tiene también otra conexión con más permisos (por ejemplo, Novamira o un conector de claude.ai), podría publicar o borrar por esa vía. Para que el límite sea real, quien use esta conexión no debe tener otras al mismo sitio.
@@ -417,7 +429,7 @@ curl -sS "$MCP" -K <(auth) \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
   -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 
-# 3. Listar herramientas: solo las de los paquetes del usuario (las catorce, con los cinco paquetes)
+# 3. Listar herramientas: solo las de los paquetes del usuario (las dieciséis, con los seis paquetes)
 curl -sS "$MCP" -K <(auth) \
   -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: $SID" -H "MCP-Protocol-Version: $PV" \
@@ -500,7 +512,7 @@ Los errores de las herramientas llegan dentro de `result`, con `isError: true` y
 
 Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 
-- `tools/list` devuelve solo las herramientas de los paquetes del usuario: las catorce con los cinco, cinco solo con *Leer*. Sin paquetes, `initialize` da 403.
+- `tools/list` devuelve solo las herramientas de los paquetes del usuario: las dieciséis con los seis, cinco solo con *Leer*. Sin paquetes, `initialize` da 403.
 - La contraseña de la conexión da 403 (`wp_connect_mcp_password_scope`) en `wp/v2/users/me` y en `wp/v2/posts`; una contraseña creada a mano en el perfil da 403 en el MCP.
 - Con algún paquete, una contraseña creada a mano en el perfil del mismo usuario da error (`wp_connect_mcp_api_blocked`) en `wp/v2/users/me`; quitándole todos los paquetes, vuelve a funcionar. El usuario sigue pudiendo entrar en el escritorio y ver la vista previa de sus borradores.
 - `get-current-user` devuelve `version` (la del plugin) y `password_scope: "mcp"`.
@@ -515,6 +527,10 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 - `upload-media` acepta una imagen válida menor de 2 MB, permite usar su ID como `featured_image` y rechaza un archivo falso con extensión `.jpg`, un archivo mayor del límite y una imagen de otro usuario.
 - Crear un borrador, leerlo, editar su título y enviarlo a la papelera funciona; desde el escritorio se puede restaurar.
 - Programar con `scheduled_date` a 10 minutos deja la entrada en `future`, y se publica sola a esa hora. El cron de WordPress solo se ejecuta cuando alguien visita el sitio, así que puede tardar algo más.
+- `update-post` con `replace`: una sustitución que aparece una vez cambia solo ese fragmento y `content_hash` coincide con el de la copia local con el mismo cambio; con una búsqueda que no aparece o aparece dos veces, error con su número y la entrada no cambia; junto a `content`, error.
+- *Plantillas de Elementor*: `list-templates` devuelve las plantillas guardadas publicadas con su shortcode; un borrador de prueba con `<!-- wp:shortcode -->[elementor-template id="N"]<!-- /wp:shortcode -->` la muestra en la vista previa con la plantilla «Entrada individual»; con el ID de una plantilla en borrador, de cabecera o inexistente, `wp_connect_mcp_invalid_template`; sin el paquete, `wp_connect_mcp_templates_not_allowed`.
+- `update-media` cambia el `alt` y el título de una imagen subida por el usuario; con una de otro usuario o un ID que no es una imagen, el mismo error que con un ID inexistente.
+- `reviewed_by` en `create-post` se guarda en el campo `wp_connect_mcp_reviewed_by`, `get-post` lo devuelve y, vacío en `update-post`, se borra.
 - `schedule-posts` con dos entradas propias las deja en `future` con su fecha en una sola llamada, y el registro anota los dos IDs. Con una entrada de otro usuario, una fecha pasada o un ID repetido en la lista, no programa ninguna y el error dice cuál falla. Con un Colaborador, `Permission denied`.
 - Con un Autor, `status: publish` publica una entrada propia (también una programada, con la fecha actual) y `status: draft` la despublica.
 - Fallan como deben: `status: publish` con un Colaborador, `status: trash`, el ID de una página, una fecha pasada, un campo desconocido (`post_type`), un usuario Suscriptor, `update-post` y `trash-post` con una entrada de otro usuario (también con un Editor). Con un Autor, `trash-post` de una entrada propia publicada funciona y la retira del sitio.
@@ -541,7 +557,9 @@ Los resultados de cada ronda de pruebas se anotan en [ESTADO.md](ESTADO.md).
 | La respuesta es una página HTML («CrowdSec Ban», «Access denied», Cloudflare) | El cortafuegos del sitio ha bloqueado la IP, normalmente por muchas llamadas seguidas. No reintentar: esperar a que se levante o pedírselo a sistemas, y usar `schedule-posts` o llamadas en serie. |
 | `wp_connect_mcp_api_blocked` con una contraseña creada a mano | Es lo esperado: el usuario tiene acceso de Claude y solo puede usar la API por el MCP. Para otra integración, usar otro usuario. |
 | `wp_connect_mcp_tags_not_found` | La etiqueta no existe y el usuario no tiene el paquete *Categorías y etiquetas*. Usar una existente o pedir el paquete. |
-| Menos de catorce herramientas | Es lo normal si el usuario no tiene los cinco paquetes. Si los tiene, revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
+| `wp_connect_mcp_replace_not_unique` | Una búsqueda de `replace` no aparece exactamente una vez en el contenido guardado (el error dice cuál y cuántas veces). Leer la entrada con `get-post` y alargar la búsqueda hasta que sea única. No se ha cambiado nada. |
+| `wp_connect_mcp_templates_not_allowed` / `wp_connect_mcp_invalid_template` | El contenido añade `[elementor-template]` sin el paquete *Plantillas de Elementor*, o con una plantilla que no está publicada, no es de sección, contenedor o página, o lleva más atributos que `id`. Usar un ID de `list-templates`. |
+| Menos de dieciséis herramientas | Es lo normal si el usuario no tiene los seis paquetes. Si los tiene, revisar el log de PHP; los errores del plugin llevan el prefijo `[wp-connect-mcp]`. |
 
 ## Desarrollo
 
@@ -562,6 +580,8 @@ Código propio en `includes/` (PSR-4 `WpConnectMcp\`):
 - `Security/AuditLog.php`: registro de uso (opción `wp_connect_mcp_log`).
 - `Abilities/`: una clase por ability (`NAME`, `register()`, `execute()`).
 - `Support/PostInput.php`: saneado y reglas de estado y programación.
-- `Support/PostExtras.php`: validación y escritura de Yoast e imagen destacada.
+- `Support/PostExtras.php`: validación y escritura de Yoast, imagen destacada y «revisado por» (`reviewed_by`).
+- `Support/ContentReplace.php`: sustituciones parciales del contenido (`replace` de `update-post`).
+- `Support/SavedTemplates.php`: plantillas guardadas de Elementor que se pueden listar e insertar, y comprobación de `[elementor-template]` en el contenido.
 - `Support/PostAccess.php`: carga de la entrada y comprobación de permisos.
 - `Support/PostFormatter.php`: formato y esquemas de salida.

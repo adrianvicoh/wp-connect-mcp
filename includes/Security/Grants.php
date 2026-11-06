@@ -13,8 +13,10 @@ use WpConnectMcp\Abilities\ListCategories;
 use WpConnectMcp\Abilities\ListPages;
 use WpConnectMcp\Abilities\ListPosts;
 use WpConnectMcp\Abilities\ListPublishedPosts;
+use WpConnectMcp\Abilities\ListTemplates;
 use WpConnectMcp\Abilities\SchedulePosts;
 use WpConnectMcp\Abilities\TrashPost;
+use WpConnectMcp\Abilities\UpdateMedia;
 use WpConnectMcp\Abilities\UpdatePost;
 use WpConnectMcp\Abilities\UploadMedia;
 use WpConnectMcp\Admin\ConnectPage;
@@ -50,12 +52,13 @@ final class Grants
         ],
         'posts-escritura' => [
             'label' => 'Escribir',
-            'description' => 'Crear, editar, programar y publicar sus entradas (según su rol) y subir imágenes.',
+            'description' => 'Crear, editar, programar y publicar sus entradas (según su rol), y subir sus imágenes y cambiar su texto alternativo.',
             'abilities' => [
                 CreatePost::NAME,
                 UpdatePost::NAME,
                 SchedulePosts::NAME,
                 UploadMedia::NAME,
+                UpdateMedia::NAME,
             ],
         ],
         'posts-papelera' => [
@@ -79,6 +82,13 @@ final class Grants
                 ListPages::NAME,
                 ListPublishedPosts::NAME,
                 GetPublished::NAME,
+            ],
+        ],
+        'plantillas-elementor' => [
+            'label' => 'Plantillas de Elementor',
+            'description' => 'Listar las plantillas guardadas de Elementor publicadas (sección, contenedor o página) e insertarlas en sus entradas con [elementor-template id="N"], por ejemplo un CTA. Sin este paquete, el contenido no puede añadir ese shortcode.',
+            'abilities' => [
+                ListTemplates::NAME,
             ],
         ],
     ];

@@ -18,8 +18,10 @@ use WpConnectMcp\Abilities\ListCategories;
 use WpConnectMcp\Abilities\ListPages;
 use WpConnectMcp\Abilities\ListPosts;
 use WpConnectMcp\Abilities\ListPublishedPosts;
+use WpConnectMcp\Abilities\ListTemplates;
 use WpConnectMcp\Abilities\SchedulePosts;
 use WpConnectMcp\Abilities\TrashPost;
+use WpConnectMcp\Abilities\UpdateMedia;
 use WpConnectMcp\Abilities\UpdatePost;
 use WpConnectMcp\Abilities\UploadMedia;
 use WpConnectMcp\Security\ApplicationPasswordScope;
@@ -50,11 +52,13 @@ final class Plugin
         UpdatePost::class,
         SchedulePosts::class,
         UploadMedia::class,
+        UpdateMedia::class,
         TrashPost::class,
         CreateCategory::class,
         ListPages::class,
         ListPublishedPosts::class,
         GetPublished::class,
+        ListTemplates::class,
     ];
 
     public static function boot(): void
@@ -102,7 +106,7 @@ final class Plugin
             self::ROUTE_NAMESPACE,
             self::ROUTE,
             'WP Connect MCP',
-            'Leer entradas y categorías; crear, editar, programar, publicar, subir imágenes y enviar a la papelera solo contenido propio. Según los permisos del usuario, también crear categorías y leer las páginas y entradas publicadas del sitio (para el enlazado, leer primero el esquema con get-published y el contenido solo si hace falta). Para programar varias entradas, usar schedule-posts en una sola llamada y no lanzar muchas llamadas en paralelo: el cortafuegos del sitio puede bloquear la IP.',
+            'Leer entradas y categorías; crear, editar, programar, publicar, subir imágenes y enviar a la papelera solo contenido propio. Según los permisos del usuario, también crear categorías, leer las páginas y entradas publicadas del sitio (para el enlazado, leer primero el esquema con get-published y el contenido solo si hace falta) e insertar plantillas guardadas de Elementor de list-templates. Para cambiar unos fragmentos de una entrada (por ejemplo, añadir enlaces), usar replace de update-post en lugar de reenviar el contenido entero. Para programar varias entradas, usar schedule-posts en una sola llamada y no lanzar muchas llamadas en paralelo: el cortafuegos del sitio puede bloquear la IP.',
             'v' . WP_CONNECT_MCP_VERSION,
             [HttpTransport::class],
             ErrorLogMcpErrorHandler::class,

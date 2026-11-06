@@ -36,7 +36,7 @@ final class PostInput
             ],
             'content' => [
                 'type' => 'string',
-                'description' => 'Contenido en HTML o marcado de bloques. Se filtra con las etiquetas permitidas en entradas.',
+                'description' => 'Contenido en HTML o marcado de bloques. Se filtra con las etiquetas permitidas en entradas. Admite plantillas guardadas de Elementor de list-templates con <!-- wp:shortcode -->[elementor-template id="N"]<!-- /wp:shortcode --> (requiere el paquete «Plantillas de Elementor»).',
             ],
             'excerpt' => [
                 'type' => 'string',
@@ -81,6 +81,11 @@ final class PostInput
                 'minimum' => 0,
                 'description' => 'ID de una imagen subida por el usuario de la conexión; 0 quita la imagen destacada.',
             ],
+            'reviewed_by' => [
+                'type' => 'string',
+                'maxLength' => PostExtras::REVIEWED_BY_MAX,
+                'description' => 'Quién firma o revisa la entrada (texto plano, por ejemplo «Revisado por la Dra. Pérez, médica de familia»). Se guarda en un campo personalizado que la plantilla puede mostrar; no cambia el autor. Vacío lo quita.',
+            ],
         ];
     }
 
@@ -103,7 +108,12 @@ final class PostInput
         }
 
         if (array_key_exists('content', $input)) {
-            $data['post_content'] = wp_kses_post($input['content']);
+            $content = wp_kses_post((string) $input['content']);
+            $templates = SavedTemplates::validateContent($content, $current ? $current->post_content : '');
+            if (is_wp_error($templates)) {
+                return $templates;
+            }
+            $data['post_content'] = $content;
         }
 
         if (array_key_exists('excerpt', $input)) {

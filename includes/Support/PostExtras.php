@@ -9,6 +9,9 @@ defined('ABSPATH') || exit;
 
 final class PostExtras
 {
+    public const REVIEWED_BY_MAX = 150;
+    private const REVIEWED_BY_META = 'wp_connect_mcp_reviewed_by';
+
     private const SEO_FIELDS = [
         'seo_title' => ['meta' => '_yoast_wpseo_title', 'max' => 70],
         'seo_description' => ['meta' => '_yoast_wpseo_metadesc', 'max' => 160],
@@ -53,6 +56,20 @@ final class PostExtras
             );
         }
 
+        if (array_key_exists('reviewed_by', $input)) {
+            $reviewedBy = sanitize_text_field((string) $input['reviewed_by']);
+            $length = function_exists('mb_strlen') ? mb_strlen($reviewedBy) : strlen($reviewedBy);
+            if ($length > self::REVIEWED_BY_MAX) {
+                return new WP_Error(
+                    'wp_connect_mcp_reviewed_by_too_long',
+                    sprintf('reviewed_by admite como máximo %d caracteres.', self::REVIEWED_BY_MAX),
+                    ['status' => 400]
+                );
+            }
+
+            $extras['reviewed_by'] = $reviewedBy;
+        }
+
         if (array_key_exists('featured_image', $input)) {
             $attachmentId = (int) $input['featured_image'];
             if ($attachmentId > 0) {
@@ -87,6 +104,14 @@ final class PostExtras
             }
         }
 
+        if (array_key_exists('reviewed_by', $extras)) {
+            if ('' === $extras['reviewed_by']) {
+                delete_post_meta($postId, self::reviewedByKey());
+            } else {
+                update_post_meta($postId, self::reviewedByKey(), wp_slash($extras['reviewed_by']));
+            }
+        }
+
         if (array_key_exists('featured_image', $extras)) {
             if ($extras['featured_image']) {
                 set_post_thumbnail($postId, (int) $extras['featured_image']);
@@ -94,6 +119,23 @@ final class PostExtras
                 delete_post_thumbnail($postId);
             }
         }
+    }
+
+    public static function reviewedBy(int $postId): string
+    {
+        return (string) get_post_meta($postId, self::reviewedByKey(), true);
+    }
+
+    /**
+     * Campo personalizado de «revisado por». Visible (sin guion bajo) para que la plantilla de Elementor lo
+     * muestre con la etiqueta dinámica «Campo personalizado». Filtro: wp_connect_mcp_reviewed_by_meta_key,
+     * para usar un campo que el sitio ya tenga (por ejemplo, de ACF).
+     */
+    private static function reviewedByKey(): string
+    {
+        $key = sanitize_key((string) apply_filters('wp_connect_mcp_reviewed_by_meta_key', self::REVIEWED_BY_META));
+
+        return '' !== $key && !is_protected_meta($key, 'post') ? $key : self::REVIEWED_BY_META;
     }
 
     private static function isYoastActive(): bool
