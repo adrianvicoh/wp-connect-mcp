@@ -4,7 +4,7 @@ Registro vivo de cómo se construye y prueba el plugin. Se actualiza en cada pas
 
 ## Situación actual
 
-- **Versión 0.4.7 en preparación (06/11/2026):** actualizado `automattic/jetpack-autoloader` de `v6.0.2` a `v6.0.3`, regenerados los autoloaders versionados de `vendor/` y actualizados `composer.lock` y el informe de seguridad. `wordpress/mcp-adapter` sigue en `v0.7.1` y `wordpress/php-mcp-schema` en `v0.2.0`; `composer audit` no encuentra vulnerabilidades ni paquetes abandonados. Falta validar, generar el zip y crear el commit solicitado.
+- **Versión 0.4.7 (06/11/2026, commit `fce3136` en `main`, sin tag ni push, sin subir al sitio; zip `wp-connect-mcp-0.4.7.zip` en la raíz):** actualizado `automattic/jetpack-autoloader` de `v6.0.2` a `v6.0.3`, regenerados los autoloaders versionados de `vendor/` y actualizados `composer.lock` y el informe de seguridad. `wordpress/mcp-adapter` sigue en `v0.7.1` y `wordpress/php-mcp-schema` en `v0.2.0`; `composer audit` no encuentra vulnerabilidades ni paquetes abandonados. PHP y el ZIP instalable validados.
 - **Versión 0.4.6 (06/11/2026, commit en `main` sin tag ni push, sin subir al sitio; zip `wp-connect-mcp-0.4.6.zip` en la raíz del repositorio):** numerada 0.4.6 a petición de Adrián. puntos pendientes 19 a 23 de `../post-create-wwwarcelona/docs/requisitos-wp-connect-mcp.md` (solo leído; ese repositorio no se ha modificado). Dieciséis herramientas y seis paquetes:
   - `update-post` con `replace` (punto 19): sustituciones `{search, replace}` sobre el contenido guardado, cada una exactamente una vez, todo o nada;
   - `list-templates` (punto 20) en el paquete nuevo *Plantillas de Elementor*: plantillas guardadas publicadas de sección, contenedor o página, con su shortcode;
@@ -311,8 +311,8 @@ Usuarios de prueba con Application Password: `test-mcp-1` (ID 7, Autor, conexió
 ### 06/11/2026 (0.4.7)
 
 - Actualizado `automattic/jetpack-autoloader` de `v6.0.2` a `v6.0.3`; regenerados los autoloaders de `vendor/` y actualizado `composer.lock`.
-- Numerada la versión 0.4.7 y actualizado `docs/INFORME-SEGURIDAD.md` para reflejar la dependencia nueva. Sin cambios de herramientas, permisos ni alcance de seguridad.
-- `composer audit` sigue sin encontrar vulnerabilidades ni paquetes abandonados. Falta la validación final, el zip y el commit.
+- Numerada la versión 0.4.7 y actualizado `docs/INFORME-SEGURIDAD.md` para reflejar la dependencia nueva. Sin cambios de herramientas, permisos ni alcance de seguridad. Commit `fce3136` y ZIP instalable `wp-connect-mcp-0.4.7.zip` generados.
+- `composer audit` sigue sin encontrar vulnerabilidades ni paquetes abandonados. `php -l`, `git diff --check` y el contenido del ZIP han quedado validados.
 
 ### 06/11/2026 (0.4.6)
 
