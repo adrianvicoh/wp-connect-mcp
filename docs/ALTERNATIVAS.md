@@ -284,7 +284,7 @@ Si no se aceptan estas condiciones: alternativa **B** (solo staging) o **H** (fi
 - ¿Se acepta A en producción con las condiciones del apartado 6, o solo B?
 - ¿Qué rol estándar se da a los usuarios de marketing: Autor (puede programar) o Colaborador (solo deja pendientes)?
 - ¿El agente puede editar entradas ya publicadas? Recomendación: no.
-- ¿Puede crear etiquetas nuevas o solo usar las existentes? Hoy un Autor puede crearlas por el MCP, aunque WordPress no se lo permite por su API.
+- ~~¿Puede crear etiquetas nuevas o solo usar las existentes?~~ Decidido el 04/11/2026 (0.4.5): solo con el paquete *Categorías y etiquetas* o `manage_categories`.
 - En sitios con Novamira, ¿se mantiene el servidor MCP por defecto (`wp_connect_mcp_keep_default_server`) o se separa Novamira de los sitios con marketing?
 - ¿Se mantienen los paquetes *Leer*, *Escribir* y *Papelera*, o se agrupan en un paquete por plugin de skills?
 - ¿Quién otorga y revisa los paquetes en cada sitio: sistemas, el responsable del proyecto o marketing?
