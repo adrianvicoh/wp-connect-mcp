@@ -19,7 +19,7 @@ return array(
 		'path'    => array( $vendorDir . '/wordpress/mcp-adapter/includes' )
 	),
 	'Automattic\\Jetpack\\Autoloader\\' => array(
-		'version' => '6.0.2',
+		'version' => '6.0.3',
 		'path'    => array( $vendorDir . '/automattic/jetpack-autoloader/src' )
 	),
 );

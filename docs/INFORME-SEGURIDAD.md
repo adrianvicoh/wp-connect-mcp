@@ -1,6 +1,6 @@
 # Seguridad de WP Connect MCP
 
-Informe para sistemas · Versión 0.4.6 · 06/11/2026 · Primera edición con la 0.3.0, el 31/10/2026
+Informe para sistemas · Versión 0.4.7 · 06/11/2026 · Primera edición con la 0.3.0, el 31/10/2026
 
 Qué se ha cerrado desde la 0.3.0, qué riesgo queda y qué necesitamos que decidáis antes de usar el plugin en producción. Versión local del informe publicado como artifact; el detalle técnico está en el [README](../README.md), [ALTERNATIVAS.md](ALTERNATIVAS.md) y el [CHANGELOG](../CHANGELOG.md).
 
@@ -14,6 +14,8 @@ La 0.3.0:
 - añade permisos por usuario, registro de uso y límites por hora.
 
 La 0.4.5 añade que un usuario con acceso de Claude solo pueda usar la API de WordPress por el MCP, y la 0.4.6, herramientas nuevas del plugin de posts sin ampliar ese alcance.
+
+La 0.4.7 actualiza `automattic/jetpack-autoloader` a `v6.0.3`. El adapter MCP y el esquema se mantienen en `v0.7.1` y `v0.2.0`; `composer audit` no encuentra vulnerabilidades ni paquetes abandonados. No cambia el alcance de las herramientas ni los permisos.
 
 La 0.4.5 está instalada en el sitio de pruebas desde el 05/11/2026, pero faltan las pruebas de rechazo. La 0.4.6 solo está probada fuera de WordPress. **Falta probarlas en el sitio de pruebas y vuestro visto bueno** antes de llevarlas a producción.
 
@@ -117,7 +119,7 @@ Revisión de toda la documentación y del código, hecha aparte de la implementa
 
 ## Lo que necesitamos de sistemas: cuatro decisiones
 
-1. **¿Aceptáis la versión actual (0.4.6) en producción con las condiciones mínimas, una vez probada en el sitio de pruebas?** Si no, la alternativa es usarlo solo en staging y pasar las entradas a producción por otra vía.
+1. **¿Aceptáis la versión actual (0.4.7) en producción con las condiciones mínimas, una vez probada en el sitio de pruebas?** Si no, la alternativa es usarlo solo en staging y pasar las entradas a producción por otra vía.
 2. **¿Es aceptable que la credencial pase por los argumentos de `claude mcp add`?** Ocurre una vez, al guardar la conexión. Si vuestros EDR registran líneas de comando, conviene saberlo.
 3. **¿Qué hacemos en los sitios con Novamira?** Desde la 0.3.0 se desactiva el servidor que usa Novamira, y desde la 0.4.5 un usuario con paquetes no puede usar otras contraseñas de aplicación. O se mantiene con un filtro en un mu-plugin, o se separan esos sitios de los de marketing.
 4. **¿Caducidad automática de las contraseñas sin uso?** Por ejemplo, revocar las que lleven 60 días sin usarse.

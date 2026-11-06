@@ -2,6 +2,12 @@
 
 Cambios por versión publicada. El día a día (pruebas, decisiones, pendientes) está en [ESTADO.md](ESTADO.md).
 
+## 0.4.7 (sin publicar)
+
+- Actualiza `automattic/jetpack-autoloader` de `v6.0.2` a `v6.0.3` y regenera los autoloaders versionados de `vendor/`.
+- `wordpress/mcp-adapter` se mantiene en `v0.7.1` y `wordpress/php-mcp-schema` en `v0.2.0`.
+- `composer audit` no encuentra vulnerabilidades ni paquetes abandonados.
+
 ## 0.4.6 (sin publicar)
 
 Puntos 19 a 23 de `post-create-wwwarcelona/docs/requisitos-wp-connect-mcp.md` (reunión del 04/11/2026 y prueba del 05/11/2026).
